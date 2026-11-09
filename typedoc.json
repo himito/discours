@@ -6,6 +6,7 @@
     "src/phonetics/normalize.ts",
     "src/phonetics/numbers.ts",
     "src/phonetics/lexicon.ts",
+    "src/phonetics/espeak.ts",
     "src/phonetics/espeak.worker.ts",
     "src/practice/align.ts",
     "src/composables/useSpeech.ts",

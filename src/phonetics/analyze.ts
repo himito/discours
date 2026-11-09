@@ -18,7 +18,7 @@
  *
  * @packageDocumentation
  */
-import type { PhonemeTrace, PhonemizeRequest, PhonemizeResponse } from './espeak.worker'
+import type { PhonemeTrace, PhonemizeRequest, PhonemizeResponse } from './espeak'
 import { lexiconIpa } from './lexicon'
 import { normalizeSentence, normalizeWord, parseText, type Token } from './normalize'
 
@@ -92,55 +92,46 @@ export interface AnalyzedParagraph {
 
 // ---------------------------------------------------------------- worker plumbing
 
-let worker: Promise<Worker> | undefined
-let nextId = 1
-const pending = new Map<
-  number,
-  { resolve: (r: PhonemeTrace[]) => void; reject: (e: Error) => void }
->()
+/** Sends a request to eSpeak and returns its answer. */
+type Engine = (req: PhonemizeRequest) => Promise<PhonemizeResponse>
+
+let engine: Promise<Engine> | undefined
 
 /**
- * Creates the eSpeak worker.
- *
- * @remarks The offline build embeds the worker's code in the page (a file opened from disk
- * cannot load a worker script); the normal build loads it as a separate file.
+ * Starts eSpeak: in a web worker normally, directly in the page in the offline build (Chrome won't
+ * start a worker from a page opened from disk, and fails silently).
  */
-async function createWorker(): Promise<Worker> {
+async function createEngine(): Promise<Engine> {
   if (import.meta.env.MODE === 'offline') {
-    const { default: EspeakWorker } = await import('./espeak.worker.ts?worker&inline')
-    return new EspeakWorker()
-  } else {
-    return new Worker(new URL('./espeak.worker.ts', import.meta.url), { type: 'module' })
+    const { handleRequest } = await import('./espeak')
+    return handleRequest
   }
+  const worker = new Worker(new URL('./espeak.worker.ts', import.meta.url), { type: 'module' })
+  const pending = new Map<number, (r: PhonemizeResponse) => void>()
+  worker.onmessage = (e: MessageEvent<PhonemizeResponse>) => {
+    pending.get(e.data.id)?.(e.data)
+    pending.delete(e.data.id)
+  }
+  return (req) =>
+    new Promise((resolve) => {
+      pending.set(req.id, resolve)
+      worker.postMessage(req)
+    })
 }
 
-/** Lazily starts the eSpeak worker and routes its answers to the pending promises. */
-function getWorker(): Promise<Worker> {
-  worker ??= createWorker().then((w) => {
-    w.onmessage = (e: MessageEvent<PhonemizeResponse>) => {
-      const p = pending.get(e.data.id)
-      if (!p) return
-      pending.delete(e.data.id)
-      if ('error' in e.data) p.reject(new Error(e.data.error))
-      else p.resolve(e.data.results)
-    }
-    return w
-  })
-  return worker
-}
+let nextId = 1
 
 /**
- * Phonemizes several texts in the eSpeak worker.
+ * Phonemizes several texts with eSpeak.
  *
  * @param texts - Texts to phonemize (already normalized).
  * @returns One phoneme trace per text, in the same order.
  */
-function phonemize(texts: string[]): Promise<PhonemeTrace[]> {
-  const id = nextId++
-  return new Promise((resolve, reject) => {
-    pending.set(id, { resolve, reject })
-    getWorker().then((w) => w.postMessage({ id, texts } satisfies PhonemizeRequest), reject)
-  })
+async function phonemize(texts: string[]): Promise<PhonemeTrace[]> {
+  engine ??= createEngine()
+  const res = await (await engine)({ id: nextId++, texts })
+  if ('error' in res) throw new Error(res.error)
+  return res.results
 }
 
 /**

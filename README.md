@@ -102,10 +102,10 @@ single file that works when opened from disk (`file://`). `scripts/build-offline
 `vite build --mode offline`, which:
 
 - uses relative paths and hash routing (`#/texte`), since there is no server to rewrite URLs;
-- puts all the code in one chunk, with the eSpeak worker inlined (a page opened from disk cannot
-  load a worker script);
-- embeds the French eSpeak data in the worker (`virtual:espeak-data` in `vite.config.ts`) instead
-  of fetching it;
+- puts all the code in one chunk and runs eSpeak directly in the page rather than in a web
+  worker: Chrome won't start a worker from a page opened from disk;
+- embeds the French eSpeak data (`virtual:espeak-data` in `vite.config.ts`) instead of fetching
+  it;
 - inlines the stylesheet, images and favicon.
 
 The **Télécharger pour hors ligne** button in the sidebar fetches that file and inserts the
@@ -166,9 +166,9 @@ flowchart LR
    _M._ → Monsieur, _XXIe_ / _21e_ → vingt-et-unième, _Louis XIV_ → Louis 14, _PIB_ → pé-i-bé,
    _1 200 000_ → 1200000, _qu'aujourd'hui_. A character map keeps track of which original word
    each character comes from.
-3. **Phonemization** (`src/phonetics/espeak.worker.ts`). eSpeak-NG runs in a web worker. Its
-   synthesis events give every phoneme along with the position of the word that produced it,
-   which is how the IPA is aligned word by word. The audio is thrown away.
+3. **Phonemization** (`src/phonetics/espeak.ts`). eSpeak-NG runs in a web worker
+   (`espeak.worker.ts`). Its synthesis events give every phoneme along with the position of the
+   word that produced it, which is how the IPA is aligned word by word. The audio is thrown away.
 4. **Choosing the IPA** (`src/phonetics/analyze.ts`). If the word is in the hand-checked lexicon
    (`src/phonetics/lexicon.ts`, about 600 hand-checked words split into syllables), its entry is
    used. Otherwise eSpeak's phonemes are cleaned up (stress marks removed, ɥ restored in _suis_,
@@ -230,7 +230,8 @@ src/
     normalize.ts          tokenizer, sentence splitter, eSpeak-friendly rewriting
     numbers.ts            French numbers and ordinals in words, Roman numerals
     lexicon.ts            hand-checked IPA lexicon from the prototype
-    espeak.worker.ts      web worker running eSpeak-NG
+    espeak.ts             eSpeak-NG loading and phonemization
+    espeak.worker.ts      web worker running it (normal build)
   practice/
     align.ts              transcript ↔ text alignment, word comparison
   composables/
