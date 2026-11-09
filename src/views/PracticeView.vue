@@ -82,7 +82,27 @@ const fmt = (sec: number) => {
 function go(i: number) {
   if (i < 0 || i >= store.paragraphs.length) return
   store.cur = i
+  drawerOpen.value = false
 }
+
+// ---------------------------------------------------------------- mobile drawer and settings
+
+/** On phones the paragraph list is a drawer, opened from the mobile header. */
+const drawerOpen = ref(false)
+/** On phones the settings bar is folded behind the ⚙ button. */
+const settingsOpen = ref(false)
+const drawerClose = ref<HTMLButtonElement>()
+
+watch(drawerOpen, (open) => {
+  // Lock the page behind the drawer, and move focus into it for keyboard and screen reader users.
+  document.body.style.overflow = open ? 'hidden' : ''
+  if (open) {
+    requestAnimationFrame(() => {
+      drawerClose.value?.focus()
+      nav.value?.querySelector<HTMLElement>('.pbtn.on')?.scrollIntoView({ block: 'center' })
+    })
+  }
+})
 
 const nav = ref<HTMLElement>()
 watch(
@@ -302,7 +322,9 @@ function findWord(key: string): WordItem | null {
 function onKey(e: KeyboardEvent) {
   const t = e.target as HTMLElement
   if (t.closest('input, textarea, select')) return
-  if (e.key === 'ArrowRight') go(store.cur + 1)
+  if (e.key === 'Escape' && drawerOpen.value) drawerOpen.value = false
+  else if (drawerOpen.value) return
+  else if (e.key === 'ArrowRight') go(store.cur + 1)
   else if (e.key === 'ArrowLeft') go(store.cur - 1)
   else if (e.key === ' ') {
     e.preventDefault()
@@ -313,14 +335,24 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => window.addEventListener('keydown', onKey))
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
+  document.body.style.overflow = ''
   stopAll()
 })
 </script>
 
 <template>
   <div class="app">
-    <aside>
+    <aside id="paragraphs" :class="{ open: drawerOpen }" aria-label="Paragraphes du discours">
       <header class="side-head">
+        <button
+          ref="drawerClose"
+          type="button"
+          class="drawer-close"
+          aria-label="Fermer la liste des paragraphes"
+          @click="drawerOpen = false"
+        >
+          ×
+        </button>
         <p class="brand"><img :src="logoMark" alt="" width="28" height="28" /> Discours</p>
         <h1>Entraînement prononciation</h1>
         <p class="hint">
@@ -380,9 +412,39 @@ onBeforeUnmount(() => {
         <RouterLink class="btn edit" :to="{ name: 'texte' }">✎ Modifier le texte</RouterLink>
       </footer>
     </aside>
+    <div v-if="drawerOpen" class="backdrop" aria-hidden="true" @click="drawerOpen = false" />
 
     <div class="col">
-      <header class="topbar" aria-label="Réglages">
+      <header class="mobile-head">
+        <button
+          type="button"
+          class="mh-btn"
+          aria-controls="paragraphs"
+          :aria-expanded="drawerOpen"
+          @click="drawerOpen = true"
+        >
+          <span aria-hidden="true">☰</span> Paragraphes
+        </button>
+        <p class="mh-title">
+          <img :src="logoMark" alt="" width="22" height="22" />
+          <span v-if="para"
+            >§ {{ position.n }} · {{ store.cur + 1 }}/{{ store.paragraphs.length }}</span
+          >
+          <span v-else>Discours</span>
+        </p>
+        <button
+          type="button"
+          class="mh-btn"
+          :class="{ on: settingsOpen }"
+          aria-controls="settings"
+          :aria-expanded="settingsOpen"
+          @click="settingsOpen = !settingsOpen"
+        >
+          <span aria-hidden="true">⚙</span> Réglages
+        </button>
+      </header>
+
+      <header id="settings" class="topbar" :class="{ open: settingsOpen }" aria-label="Réglages">
         <fieldset class="group">
           <legend>Affichage</legend>
           <label class="switch">
@@ -482,17 +544,19 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="bar">
-            <button type="button" class="btn" :disabled="!speech.supported" @click="listen">
-              {{ listening ? '■ Arrêter' : '▶ Écouter le modèle' }}
+            <button type="button" class="btn act" :disabled="!speech.supported" @click="listen">
+              <template v-if="listening">■ Arrêter</template>
+              <template v-else>▶ Écouter<span class="long"> le modèle</span></template>
             </button>
             <button
               type="button"
-              class="btn"
+              class="btn act"
               :class="reading.listening.value ? 'rec' : 'primary'"
               :disabled="!recognitionSupported"
               @click="toggleReading"
             >
-              {{ reading.listening.value ? "■ J'ai fini" : '● Lire à voix haute' }}
+              <template v-if="reading.listening.value">■ J'ai fini</template>
+              <template v-else>● Lire<span class="long"> à voix haute</span></template>
             </button>
             <button
               type="button"
@@ -900,9 +964,14 @@ main {
 .noipa .ipa {
   display: none;
 }
-.w:hover,
 .w:focus-visible {
   outline: 2px solid var(--accent);
+}
+/* On touch screens a hover outline would stick after the tap. */
+@media (hover: hover) {
+  .w:hover {
+    outline: 2px solid var(--accent);
+  }
 }
 .w.ok {
   background: var(--okbg);
@@ -1140,21 +1209,6 @@ main {
     transition: none;
   }
 }
-@media (max-width: 760px) {
-  .topbar {
-    position: static;
-  }
-  .group,
-  .group + .group {
-    width: 100%;
-    border-left: 0;
-    padding: 0;
-  }
-  .group + .group {
-    border-top: 1px solid var(--line);
-    padding-top: 8px;
-  }
-}
 .result {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1324,26 +1378,236 @@ main {
   height: 14px;
   display: inline-block;
 }
+/* ---------------------------------------------------------------- phones */
+.mobile-head,
+.drawer-close {
+  display: none;
+}
+
 @media (max-width: 760px) {
   .app {
     grid-template-columns: 1fr;
   }
-  aside {
-    border-right: 0;
+
+  /* Compact header with the drawer and settings buttons. */
+  .mobile-head {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
-    height: auto;
-    max-height: 55vh;
-    position: static;
+  }
+  .mh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .mh-btn.on {
+    background: var(--tint);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .mh-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .mh-title img {
+    border-radius: 5px;
+  }
+
+  /* The paragraph list slides in from the left. */
+  aside {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 30;
+    width: min(88vw, 340px);
+    height: 100dvh;
+    border-right: 1px solid var(--line);
+    box-shadow: 0 0 40px rgba(0, 40, 75, 0.25);
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition:
+      transform 0.25s ease,
+      visibility 0s linear 0.25s;
+  }
+  aside.open {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.25s ease;
+  }
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    background: rgba(0, 40, 75, 0.35);
   }
   .side-head {
-    padding: 16px;
+    position: relative;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 14px;
+  }
+  .drawer-close {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    background: none;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--soft);
+  }
+  .pbtn {
+    padding-block: 10px;
+  }
+  .side-foot {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Settings fold away behind the ⚙ button. */
+  .topbar {
+    display: none;
+    position: static;
+    padding: 12px 16px;
+    background: #fafbfc;
+  }
+  .topbar.open {
+    display: flex;
+  }
+  .group,
+  .group + .group {
+    width: 100%;
+    border-left: 0;
+    padding: 0;
+  }
+  .group + .group {
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+  }
+  .group legend {
+    width: 100%;
+  }
+  .speed {
+    width: 100%;
+  }
+  .range {
+    flex: 1;
+    width: auto;
+    height: 8px;
+  }
+  .select-wrap,
+  .select {
+    width: 100%;
+    max-width: none;
+  }
+  .select {
+    min-height: 40px;
+    font-size: 16px; /* below 16px, iOS Safari zooms in on focus */
+  }
+
+  main {
+    padding: 16px 14px 0;
+    gap: 14px;
+  }
+  .top h2 {
+    font-size: 12px;
+  }
+  .top .meta {
+    font-size: 12px;
   }
   .text {
-    font-size: 20px;
-    padding: 16px;
+    font-size: 19px;
+    padding: 14px;
+    column-gap: 0.28em;
+  }
+  .text:not(.noipa) {
+    row-gap: 10px;
+  }
+  .w .ipa {
+    font-size: 13px;
+  }
+
+  /* Listen / read / previous / next stay at the bottom, within thumb reach. */
+  .bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 11;
+    margin: 0 -14px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid var(--line);
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .bar .btn {
+    min-height: 44px;
+    padding: 0 12px;
+    justify-content: center;
+  }
+  .bar .act {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .long {
+    display: none;
+  }
+
+  .legend {
+    gap: 6px 12px;
+    font-size: 12px;
+  }
+  .legend span:last-child {
+    display: none;
   }
   .result {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .kpi {
+    padding: 10px;
+  }
+  .kpi b {
+    font-size: 22px;
+  }
+  .kpi span {
+    font-size: 11px;
+  }
+  .cards {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+  .hard {
+    padding-bottom: 24px;
+  }
+}
+
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  aside,
+  aside.open {
+    transition: none;
   }
 }
 </style>

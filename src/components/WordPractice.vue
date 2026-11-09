@@ -218,7 +218,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  z-index: 20;
+  z-index: 40;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
 }
 .x {
   position: absolute;
@@ -308,5 +310,36 @@ onBeforeUnmount(() => {
 }
 .sym:hover {
   background: var(--tint);
+}
+@media (max-width: 760px) {
+  /* Bottom sheet, above the sticky action bar. */
+  .wp {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    border: 0;
+    border-top: 2px solid var(--ink);
+    border-radius: 14px 14px 0 0;
+    padding: 18px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -10px 30px rgba(0, 40, 75, 0.2);
+  }
+  .x {
+    width: 40px;
+    height: 40px;
+    top: 6px;
+    right: 6px;
+  }
+  .wpw {
+    font-size: 28px;
+    padding-right: 40px;
+  }
+  .bar .btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 10px;
+  }
 }
 </style>
