@@ -17,7 +17,8 @@
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "@echogarden/espeak-ng-emscripten": "^0.3.5",

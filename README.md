@@ -14,6 +14,7 @@ The training screen and its engines follow an earlier single-page prototype,
 
 - [Features](#features)
 - [Getting started](#getting-started)
+- [Deployment](#deployment)
 - [Writing a speech](#writing-a-speech)
 - [How it works](#how-it-works)
 - [Project structure](#project-structure)
@@ -62,6 +63,33 @@ The microphone is needed for *Lire à voix haute* and *Répéter*. Allow it when
 | `npm run format`     | Prettier on `src/`                                              |
 | `npm run espeak`     | Rebuild the French eSpeak-NG bundle (run by `dev` and `build`)  |
 | `npm run docs`       | Generate the API documentation in `docs/api/` (TypeDoc)         |
+| `npm run deploy`     | Build for a sub-path and copy into a folder of apps (see below)  |
+
+## Deployment
+
+`npm run deploy` builds the app for a sub-path and copies it into a folder of static apps:
+
+```sh
+npm run deploy -- /path/to/apps        # installs into /path/to/apps/discours
+DEPLOY_DIR=/path/to/apps npm run deploy
+```
+
+To avoid typing the path, set it once in a `.deploy.local` file at the project root (git-ignored):
+
+```sh
+DEPLOY_DIR=/path/to/apps
+```
+
+The app is built with the public path `/apps/discours/` (change it with `BASE_PATH`, read by
+`vite.config.ts`). `scripts/deploy.sh` syncs `dist/` into `<folder>/discours/`, removing files from
+older builds, and writes an `.htaccess`. Publishing the folder is up to you.
+
+Links to inner pages (such as `/apps/discours/texte`) work in two ways:
+
+- on Apache, through the `.htaccess` rewrite to `index.html`;
+- on static hosts without rewrites (GitHub Pages), through a `404.html` that stores the requested
+  path in `sessionStorage` (`spa-redirect`) and redirects to the app. The first script in
+  `index.html` restores the path.
 
 ## Writing a speech
 
@@ -190,7 +218,7 @@ public/espeak/            generated French data package, git-ignored
 
 Every module, exported function and type is documented with
 [TSDoc](https://tsdoc.org) comments. Start with `src/phonetics/analyze.ts`: its header describes
-the whole pipeline. Run `npm run docs` to browse them as a website.
+the whole pipeline. Run `npm run docs` to browse them as HTML pages.
 
 ## Development
 
