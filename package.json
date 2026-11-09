@@ -2,6 +2,7 @@
   "name": "discours",
   "version": "0.0.0",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
     "espeak": "node scripts/build-espeak-fr.mjs",

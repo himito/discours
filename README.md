@@ -224,5 +224,6 @@ the whole pipeline. Run `npm run docs` to browse them as a website.
 
 ## Licence
 
-eSpeak-NG is licensed under GPL-3.0. Bundling it into the app subjects the distributed version to
-that licence.
+Discours is free software, released under the GNU General Public License, version 3 or (at your
+option) any later version. It bundles eSpeak-NG, which is under the same licence. See
+[LICENSE](LICENSE) for the full terms.
