@@ -1,0 +1,87 @@
+/* Palette and type from the original prototype page, "Entrainement prononciation". */
+:root {
+  --ink: #00284b;
+  --soft: #1b2d42;
+  --accent: #6941eb;
+  --line: #c9d3de;
+  --tint: #f1eefd;
+  --ok: #0b7a3e;
+  --okbg: #e3f4ea;
+  --bad: #b3261e;
+  --badbg: #fce8e6;
+  --liaison: #b3267a;
+  --ench: #0b7a3e;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --ipa-font: 'Doulos SIL', 'Charis SIL', 'Noto Sans', sans-serif;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: #fff;
+}
+a {
+  color: var(--accent);
+}
+a:hover {
+  color: var(--ink);
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  border: 2px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btn:hover {
+  background: var(--tint);
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.primary:hover {
+  background: #5532c9;
+}
+.btn.rec {
+  background: var(--bad);
+  border-color: var(--bad);
+  color: #fff;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.link {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  padding: 0;
+  font-size: 13px;
+  text-decoration: underline;
+}
+:is(.btn, .link, a, button):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Discours",
+  "entryPoints": [
+    "src/phonetics/analyze.ts",
+    "src/phonetics/normalize.ts",
+    "src/phonetics/numbers.ts",
+    "src/phonetics/lexicon.ts",
+    "src/phonetics/espeak.worker.ts",
+    "src/practice/align.ts",
+    "src/composables/useSpeech.ts",
+    "src/composables/useRecognition.ts",
+    "src/stores/discours.ts"
+  ],
+  "tsconfig": "tsconfig.docs.json",
+  "out": "docs/api",
+  "readme": "README.md",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "sort": [
+    "source-order"
+  ],
+  "validation": {
+    "notExported": false,
+    "invalidLink": true
+  },
+  "ignoredHighlightLanguages": [
+    "mermaid"
+  ]
+}
