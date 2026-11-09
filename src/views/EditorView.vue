@@ -13,7 +13,9 @@ import { SAMPLE_TEXT, useDiscoursStore } from '@/stores/discours'
 const store = useDiscoursStore()
 const router = useRouter()
 
-const wordCount = computed(() => store.text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)?.length ?? 0)
+const wordCount = computed(
+  () => store.text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)?.length ?? 0,
+)
 
 function start() {
   void store.analyze()
@@ -25,17 +27,33 @@ function start() {
   <main class="editor">
     <div class="top">
       <h2>Texte du discours</h2>
-      <span class="meta">{{ wordCount }} mots · ≈ {{ Math.max(1, Math.round(wordCount / 135)) }} min à 135 mots/min</span>
+      <span class="meta"
+        >{{ wordCount }} mots · ≈ {{ Math.max(1, Math.round(wordCount / 135)) }} min à 135
+        mots/min</span
+      >
     </div>
     <p class="hint">
-      Un paragraphe par ligne. Une ligne qui commence par <code>#</code> est un titre de partie. Dans le texte,
-      <code>/</code> marque une pause courte, <code>//</code> une pause longue et <code>[→]</code> un enchaînement de
-      diapositive.
+      Un paragraphe par ligne. Une ligne qui commence par <code>#</code> est un titre de partie.
+      Dans le texte, <code>/</code> marque une pause courte, <code>//</code> une pause longue et
+      <code>[→]</code> un enchaînement de diapositive.
     </p>
-    <textarea v-model="store.text" class="text" spellcheck="true" lang="fr" aria-label="Texte du discours" />
+    <textarea
+      v-model="store.text"
+      class="text"
+      spellcheck="true"
+      lang="fr"
+      aria-label="Texte du discours"
+    />
     <div class="bar">
-      <button type="button" class="btn primary" :disabled="!wordCount" @click="start">▶ S'entraîner</button>
-      <button v-if="store.text !== SAMPLE_TEXT" type="button" class="btn" @click="store.text = SAMPLE_TEXT">
+      <button type="button" class="btn primary" :disabled="!wordCount" @click="start">
+        ▶ S'entraîner
+      </button>
+      <button
+        v-if="store.text !== SAMPLE_TEXT"
+        type="button"
+        class="btn"
+        @click="store.text = SAMPLE_TEXT"
+      >
         Charger l'exemple
       </button>
       <button v-if="store.text" type="button" class="btn" @click="store.text = ''">Effacer</button>

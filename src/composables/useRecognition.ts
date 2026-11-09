@@ -36,12 +36,16 @@ interface Recognition {
 }
 type RecognitionCtor = new () => Recognition
 
-const w = typeof window !== 'undefined' ? (window as unknown as Record<string, RecognitionCtor | undefined>) : {}
+const w =
+  typeof window !== 'undefined'
+    ? (window as unknown as Record<string, RecognitionCtor | undefined>)
+    : {}
 const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition
 /** Whether this browser has speech recognition. */
 export const recognitionSupported = !!Ctor
 
-const MIC_BLOCKED = 'Le micro est bloqué. Autorise le micro pour cette page dans ton navigateur, puis réessaie.'
+const MIC_BLOCKED =
+  'Le micro est bloqué. Autorise le micro pour cette page dans ton navigateur, puis réessaie.'
 
 /**
  * Recognition of a paragraph read aloud.
@@ -140,7 +144,8 @@ export function listenOnce(): { result: Promise<string[]>; cancel: () => void } 
       got = Array.from({ length: r.length }, (_, i) => r[i]!.transcript.trim())
     }
     rec.onerror = (e) => {
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') reject(new Error(MIC_BLOCKED))
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed')
+        reject(new Error(MIC_BLOCKED))
     }
     rec.onend = () => resolve(got)
   })

@@ -57,9 +57,9 @@ const ABBREVIATIONS: Record<string, string> = {
   Mmes: 'Mesdames',
   Mlle: 'Mademoiselle',
   Mlles: 'Mesdemoiselles',
-  'Dr': 'Docteur',
+  Dr: 'Docteur',
   'Dr.': 'Docteur',
-  'Pr': 'Professeur',
+  Pr: 'Professeur',
   'Pr.': 'Professeur',
   'etc.': 'et cetera',
   'cf.': 'confer',
@@ -71,16 +71,59 @@ const ABBREVIATIONS: Record<string, string> = {
 
 /** All-caps words that are read as words, not spelled out letter by letter. */
 const ACRONYMS_READ_AS_WORDS = new Set([
-  'ONU', 'OTAN', 'UNESCO', 'UNICEF', 'SIDA', 'NASA', 'INSEE', 'CAC', 'ENA', 'OPEP',
-  'COVID', 'ZAD', 'CAPES', 'ADN', 'PACS', 'SAMU', 'ESA', 'CERN', 'INRIA', 'INSERM', 'IRCAM',
-  'LIPN', 'CROUS', 'OCDE', 'CNES', 'MEDEF', 'ASSEDIC', 'URSSAF', 'BAFA',
+  'ONU',
+  'OTAN',
+  'UNESCO',
+  'UNICEF',
+  'SIDA',
+  'NASA',
+  'INSEE',
+  'CAC',
+  'ENA',
+  'OPEP',
+  'COVID',
+  'ZAD',
+  'CAPES',
+  'ADN',
+  'PACS',
+  'SAMU',
+  'ESA',
+  'CERN',
+  'INRIA',
+  'INSERM',
+  'IRCAM',
+  'LIPN',
+  'CROUS',
+  'OCDE',
+  'CNES',
+  'MEDEF',
+  'ASSEDIC',
+  'URSSAF',
+  'BAFA',
 ])
 
 /** Acronyms whose spelling eSpeak cannot pronounce as a word. */
 const RESPELLINGS: Record<string, string> = { INSEE: 'insé', CROUS: 'crousse', URSSAF: 'urssaffe' }
 
 /** All-caps tokens that look like Roman numerals but are acronyms. */
-const NOT_ROMAN = new Set(['CD', 'CV', 'DC', 'MC', 'MD', 'DM', 'CDI', 'CDD', 'LCD', 'DIV', 'MIX', 'CM', 'CI', 'CLI', 'MDL', 'DL'])
+const NOT_ROMAN = new Set([
+  'CD',
+  'CV',
+  'DC',
+  'MC',
+  'MD',
+  'DM',
+  'CDI',
+  'CDD',
+  'LCD',
+  'DIV',
+  'MIX',
+  'CM',
+  'CI',
+  'CLI',
+  'MDL',
+  'DL',
+])
 
 const ABBREV_PATTERN = Object.keys(ABBREVIATIONS)
   .sort((a, b) => b.length - a.length)
@@ -135,7 +178,11 @@ export function tokenizeParagraph(text: string): Token[] {
     const prev = tokens[tokens.length - 1]
     if (prev) prev.space = text.slice(prev.end, start)
     tokens.push({
-      kind: MARK.test(t) ? 'mark' : /[\p{L}\p{N}]/u.test(t) || SPOKEN_SYMBOLS.test(t) ? 'word' : 'punct',
+      kind: MARK.test(t)
+        ? 'mark'
+        : /[\p{L}\p{N}]/u.test(t) || SPOKEN_SYMBOLS.test(t)
+          ? 'word'
+          : 'punct',
       text: t,
       start,
       end: start + t.length,
@@ -160,7 +207,11 @@ export function splitSentences(tokens: Token[]): Sentence[] {
     const tok = tokens[i]!
     current.push(tok)
     if (tok.kind === 'punct' && SENTENCE_END.test(tok.text)) {
-      while (i + 1 < tokens.length && tokens[i + 1]!.kind === 'punct' && (CLOSERS.test(tokens[i + 1]!.text) || SENTENCE_END.test(tokens[i + 1]!.text))) {
+      while (
+        i + 1 < tokens.length &&
+        tokens[i + 1]!.kind === 'punct' &&
+        (CLOSERS.test(tokens[i + 1]!.text) || SENTENCE_END.test(tokens[i + 1]!.text))
+      ) {
         current.push(tokens[++i]!)
       }
       sentences.push({ tokens: current })
@@ -263,9 +314,32 @@ export function normalizeWord(word: string): string {
 
 /** French names of the letters, used to spell acronyms. */
 const LETTER_NAMES: Record<string, string> = {
-  A: 'a', B: 'bé', C: 'cé', D: 'dé', E: 'e', F: 'effe', G: 'gé', H: 'ache', I: 'i', J: 'ji',
-  K: 'ka', L: 'elle', M: 'emme', N: 'enne', O: 'o', P: 'pé', Q: 'ku', R: 'erre', S: 'esse',
-  T: 'té', U: 'u', V: 'vé', W: 'double-vé', X: 'ixe', Y: 'i-grec', Z: 'zède',
+  A: 'a',
+  B: 'bé',
+  C: 'cé',
+  D: 'dé',
+  E: 'e',
+  F: 'effe',
+  G: 'gé',
+  H: 'ache',
+  I: 'i',
+  J: 'ji',
+  K: 'ka',
+  L: 'elle',
+  M: 'emme',
+  N: 'enne',
+  O: 'o',
+  P: 'pé',
+  Q: 'ku',
+  R: 'erre',
+  S: 'esse',
+  T: 'té',
+  U: 'u',
+  V: 'vé',
+  W: 'double-vé',
+  X: 'ixe',
+  Y: 'i-grec',
+  Z: 'zède',
 }
 
 /**
@@ -299,7 +373,15 @@ export function normalizeSentence(tokens: Token[]): NormalizedSentence {
   const owners: number[] = []
   tokens.forEach((tok, i) => {
     const piece =
-      tok.kind === 'word' ? normalizeWord(tok.text) : tok.kind === 'mark' ? (tok.text === '//' ? '.' : tok.text === '/' ? ',' : '') : tok.text
+      tok.kind === 'word'
+        ? normalizeWord(tok.text)
+        : tok.kind === 'mark'
+          ? tok.text === '//'
+            ? '.'
+            : tok.text === '/'
+              ? ','
+              : ''
+          : tok.text
     text += piece
     for (let k = 0; k < piece.length; k++) owners.push(tok.kind === 'word' ? i : -1)
     const space = tok.space ? ' ' : ''

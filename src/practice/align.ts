@@ -70,7 +70,9 @@ export function align(items: Item[], heardText: string): Alignment {
   const D = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1))
   for (let i = n - 1; i >= 0; i--) {
     for (let j = m - 1; j >= 0; j--) {
-      D[i]![j] = sameWord(exp[i]!.k, heard[j]!) ? D[i + 1]![j + 1]! + 1 : Math.max(D[i + 1]![j]!, D[i]![j + 1]!)
+      D[i]![j] = sameWord(exp[i]!.k, heard[j]!)
+        ? D[i + 1]![j + 1]! + 1
+        : Math.max(D[i + 1]![j]!, D[i]![j + 1]!)
     }
   }
   const hit = new Set<number>()

@@ -35,7 +35,11 @@ const para = computed<AnalyzedParagraph | undefined>(() => store.paragraphs[stor
 
 /** Paragraphs grouped by section, with their position in the section and how many were read. */
 const sections = computed(() => {
-  const out: { title: string; read: number; items: { p: AnalyzedParagraph; index: number; n: number }[] }[] = []
+  const out: {
+    title: string
+    read: number
+    items: { p: AnalyzedParagraph; index: number; n: number }[]
+  }[] = []
   store.paragraphs.forEach((p, index) => {
     let sec = out[out.length - 1]
     if (!sec || sec.title !== p.section) out.push((sec = { title: p.section, read: 0, items: [] }))
@@ -47,7 +51,9 @@ const sections = computed(() => {
 
 /** Paragraphs read at least once, and their average best score. */
 const progress = computed(() => {
-  const scores = store.paragraphs.map((p) => store.best[p.id]).filter((v): v is number => v !== undefined)
+  const scores = store.paragraphs
+    .map((p) => store.best[p.id])
+    .filter((v): v is number => v !== undefined)
   const total = store.paragraphs.length
   return {
     read: scores.length,
@@ -89,7 +95,8 @@ watch(
       const b = a?.querySelector<HTMLElement>('.pbtn.on')
       if (!a || !b) return
       const r = b.offsetTop
-      if (r < a.scrollTop || r > a.scrollTop + a.clientHeight - 60) a.scrollTop = r - a.clientHeight / 3
+      if (r < a.scrollTop || r > a.scrollTop + a.clientHeight - 60)
+        a.scrollTop = r - a.clientHeight / 3
     })
   },
 )
@@ -101,7 +108,9 @@ function scoreClass(v: number) {
 // ---------------------------------------------------------------- display units
 
 /** What is displayed: a word with its attached punctuation, or a reading mark. */
-type Unit = { kind: 'word'; index: number; item: WordItem; pre: string; post: string } | { kind: 'mark'; text: string }
+type Unit =
+  | { kind: 'word'; index: number; item: WordItem; pre: string; post: string }
+  | { kind: 'mark'; text: string }
 
 const OPENING = /^[«“([]$/
 
@@ -124,7 +133,8 @@ const units = computed<Unit[]>(() => {
       pre += item.text + (item.space ? ' ' : '')
     } else {
       const last = out[out.length - 1]
-      if (last?.kind === 'word') last.post += (item.text === '…' || /^[,.)\]»”]/.test(item.text) ? '' : ' ') + item.text
+      if (last?.kind === 'word')
+        last.post += (item.text === '…' || /^[,.)\]»”]/.test(item.text) ? '' : ' ') + item.text
       else pre += item.text + ' '
     }
   })
@@ -168,7 +178,10 @@ function listen() {
   if (!para.value) return
   if (listening.value) return speech.stop()
   if (reading.listening.value) reading.stop()
-  void speech.speak(para.value.id, spoken.value.text, { rate: store.rate, voiceURI: store.voiceURI })
+  void speech.speak(para.value.id, spoken.value.text, {
+    rate: store.rate,
+    voiceURI: store.voiceURI,
+  })
 }
 
 // ---------------------------------------------------------------- reading aloud
@@ -256,7 +269,9 @@ const hardWords = computed(() =>
     }),
 )
 const showAllHard = ref(false)
-const shownHard = computed(() => (showAllHard.value ? hardWords.value : hardWords.value.slice(0, HARD_SHOWN)))
+const shownHard = computed(() =>
+  showAllHard.value ? hardWords.value : hardWords.value.slice(0, HARD_SHOWN),
+)
 const confirmClear = ref(false)
 
 function clearHard() {
@@ -307,13 +322,25 @@ onBeforeUnmount(() => {
       <header class="side-head">
         <p class="brand">Discours</p>
         <h1>Entraînement prononciation</h1>
-        <p class="hint">Écoute le modèle, puis lis à voix haute. Les mots mal compris passent en rouge.</p>
+        <p class="hint">
+          Écoute le modèle, puis lis à voix haute. Les mots mal compris passent en rouge.
+        </p>
         <div v-if="progress.total" class="overall">
           <div class="overall-row">
-            <span><b>{{ progress.read }}</b> / {{ progress.total }} paragraphes lus</span>
-            <span v-if="progress.average !== null" :class="scoreClass(progress.average)">moyenne {{ progress.average }} %</span>
+            <span
+              ><b>{{ progress.read }}</b> / {{ progress.total }} paragraphes lus</span
+            >
+            <span v-if="progress.average !== null" :class="scoreClass(progress.average)"
+              >moyenne {{ progress.average }} %</span
+            >
           </div>
-          <div class="meter" role="progressbar" :aria-valuenow="progress.read" aria-valuemin="0" :aria-valuemax="progress.total">
+          <div
+            class="meter"
+            role="progressbar"
+            :aria-valuenow="progress.read"
+            aria-valuemin="0"
+            :aria-valuemax="progress.total"
+          >
             <span :style="{ width: `${progress.pct}%` }" />
           </div>
         </div>
@@ -336,7 +363,11 @@ onBeforeUnmount(() => {
           >
             <span class="pnum">{{ it.n }}</span>
             <span class="ptext">{{ it.p.text }}</span>
-            <span v-if="store.best[it.p.id] !== undefined" class="score" :class="scoreClass(store.best[it.p.id]!)">
+            <span
+              v-if="store.best[it.p.id] !== undefined"
+              class="score"
+              :class="scoreClass(store.best[it.p.id]!)"
+            >
               {{ store.best[it.p.id] }}%
             </span>
             <span v-else class="score none" aria-label="pas encore lu">–</span>
@@ -349,148 +380,251 @@ onBeforeUnmount(() => {
       </footer>
     </aside>
 
-    <main>
-      <div v-if="!recognitionSupported" class="msg">
-        La reconnaissance vocale n'est pas disponible dans ce navigateur. Utilise Google Chrome ou Microsoft Edge sur
-        ordinateur. Tu peux quand même écouter le modèle.
-      </div>
-      <div v-if="reading.error.value" class="msg">{{ reading.error.value }}</div>
-
-      <template v-if="store.status === 'ready' && para">
-        <div class="top">
-          <h2>{{ position.section }} · § {{ position.n }}</h2>
-          <span class="meta">{{ wordCount }} mots · ≈ {{ fmt((wordCount / WPM_TARGET) * 60) }} à {{ WPM_TARGET }} mots/min</span>
-        </div>
-
-        <div class="text" :class="{ noipa: !store.showIpa }">
-          <template v-for="(u, k) in units" :key="k">
-            <span v-if="u.kind === 'mark'" class="mk">{{ u.text }}</span>
-            <span
-              v-else
-              class="w"
-              :class="[{ tech: u.item.tech, say: u.index === sayIndex }, wordState(u.index, u.item)]"
-              role="button"
-              tabindex="0"
-              @click="openWord(u.item.text, u.item)"
-              @keydown.enter="openWord(u.item.text, u.item)"
-            >
-              <span>{{ u.pre }}{{ u.item.text }}{{ u.post }}</span>
-              <span class="ipa">
-                <template v-if="store.ipaOf(u.item)">/{{ store.ipaOf(u.item) }}/</template>
-                <template v-else>&nbsp;</template>
-                <span v-if="store.showLinks && u.item.link === 'liaison'" class="lz" :title="`Liaison en [${u.item.liaison}]`">‿{{ u.item.liaison }}</span>
-                <span v-else-if="store.showLinks && u.item.link === 'enchainement'" class="ench" title="Enchaînement">‿</span>
-              </span>
-            </span>
-          </template>
-        </div>
-
-        <div class="bar">
-          <button type="button" class="btn" :disabled="!speech.supported" @click="listen">
-            {{ listening ? '■ Arrêter' : '▶ Écouter le modèle' }}
-          </button>
-          <button
-            type="button"
-            class="btn"
-            :class="reading.listening.value ? 'rec' : 'primary'"
-            :disabled="!recognitionSupported"
-            @click="toggleReading"
-          >
-            {{ reading.listening.value ? "■ J'ai fini" : '● Lire à voix haute' }}
-          </button>
-          <button type="button" class="btn" aria-label="Paragraphe précédent" :disabled="store.cur <= 0" @click="go(store.cur - 1)">←</button>
-          <button type="button" class="btn" aria-label="Paragraphe suivant" :disabled="store.cur >= store.paragraphs.length - 1" @click="go(store.cur + 1)">→</button>
-          <label class="rate push"><input v-model="store.showIpa" type="checkbox" /> Afficher la prononciation (API)</label>
-          <label class="rate"><input v-model="store.showLinks" type="checkbox" /> Liaisons</label>
-          <label class="rate">
-            Vitesse du modèle
-            <input v-model.number="store.rate" type="range" min="0.6" max="1.1" step="0.05" />
-            <span>{{ store.rate.toFixed(2) }}</span>
+    <div class="col">
+      <header class="topbar" aria-label="Réglages">
+        <fieldset class="group">
+          <legend>Affichage</legend>
+          <label class="switch">
+            <input v-model="store.showIpa" type="checkbox" role="switch" />
+            <span class="track" aria-hidden="true"><span class="knob" /></span>
+            Prononciation (API)
           </label>
-          <label v-if="speech.voices.value.length > 1" class="rate">
-            Voix
-            <select v-model="store.voiceURI">
-              <option value="">Automatique</option>
-              <option v-for="v in speech.voices.value" :key="v.voiceURI" :value="v.voiceURI">{{ v.name }}</option>
+          <label class="switch">
+            <input
+              v-model="store.showLinks"
+              type="checkbox"
+              role="switch"
+              :disabled="!store.showIpa"
+            />
+            <span class="track" aria-hidden="true"><span class="knob" /></span>
+            Liaisons <span class="lz-sample" aria-hidden="true">‿z</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="group voice">
+          <legend>Voix du modèle</legend>
+          <label class="speed">
+            <span class="lbl">Vitesse</span>
+            <input
+              v-model.number="store.rate"
+              class="range"
+              type="range"
+              min="0.6"
+              max="1.1"
+              step="0.05"
+              :style="{ '--fill': `${((store.rate - 0.6) / 0.5) * 100}%` }"
+            />
+            <output class="pill">{{ store.rate.toFixed(2).replace('.', ',') }}×</output>
+          </label>
+          <label v-if="speech.voices.value.length > 1" class="select-wrap">
+            <span class="lbl">Voix</span>
+            <select v-model="store.voiceURI" class="select">
+              <option value="">Automatique (la meilleure)</option>
+              <option v-for="v in speech.voices.value" :key="v.voiceURI" :value="v.voiceURI">
+                {{ v.name }}
+              </option>
             </select>
           </label>
-        </div>
+        </fieldset>
+      </header>
 
-        <div class="legend">
-          <span><i style="background: var(--okbg)"></i>compris</span>
-          <span><i style="background: var(--badbg)"></i>à retravailler</span>
-          <span><i style="border: 1px solid var(--line)"></i><em>terme technique, non compté</em></span>
-          <span><b class="lz">‿z</b> liaison <b class="ench">‿</b> enchaînement</span>
-          <span>
-            Clique un mot pour l'entendre et t'entraîner à le répéter. Sous chaque mot : sa prononciation en alphabet
-            phonétique international (API).
-          </span>
+      <main>
+        <div v-if="!recognitionSupported" class="msg">
+          La reconnaissance vocale n'est pas disponible dans ce navigateur. Utilise Google Chrome ou
+          Microsoft Edge sur ordinateur. Tu peux quand même écouter le modèle.
         </div>
+        <div v-if="reading.error.value" class="msg">{{ reading.error.value }}</div>
 
-        <div v-if="result" class="result">
-          <div class="kpi"><b :class="scoreClass(result.pct)">{{ result.pct }} %</b><span>des mots compris</span></div>
-          <div class="kpi"><b>{{ fmt(result.sec) }}</b><span>durée de lecture</span></div>
-          <div class="kpi"><b>{{ result.wpm ?? '–' }}</b><span>mots / minute (cible ≈ {{ WPM_TARGET }})</span></div>
-        </div>
+        <template v-if="store.status === 'ready' && para">
+          <div class="top">
+            <h2>{{ position.section }} · § {{ position.n }}</h2>
+            <span class="meta"
+              >{{ wordCount }} mots · ≈ {{ fmt((wordCount / WPM_TARGET) * 60) }} à
+              {{ WPM_TARGET }} mots/min</span
+            >
+          </div>
 
-        <div class="heard">
-          <template v-if="reading.listening.value || reading.finals.value">
-            <b>Entendu :</b> {{ reading.finals.value }}
-            <i>{{ reading.listening.value && !reading.finals.value && !reading.interim.value ? 'parle maintenant…' : reading.interim.value }}</i>
-          </template>
-        </div>
+          <div class="text" :class="{ noipa: !store.showIpa }">
+            <template v-for="(u, k) in units" :key="k">
+              <span v-if="u.kind === 'mark'" class="mk">{{ u.text }}</span>
+              <span
+                v-else
+                class="w"
+                :class="[
+                  { tech: u.item.tech, say: u.index === sayIndex },
+                  wordState(u.index, u.item),
+                ]"
+                role="button"
+                tabindex="0"
+                @click="openWord(u.item.text, u.item)"
+                @keydown.enter="openWord(u.item.text, u.item)"
+              >
+                <span>{{ u.pre }}{{ u.item.text }}{{ u.post }}</span>
+                <span class="ipa">
+                  <template v-if="store.ipaOf(u.item)">/{{ store.ipaOf(u.item) }}/</template>
+                  <template v-else>&nbsp;</template>
+                  <span
+                    v-if="store.showLinks && u.item.link === 'liaison'"
+                    class="lz"
+                    :title="`Liaison en [${u.item.liaison}]`"
+                    >‿{{ u.item.liaison }}</span
+                  >
+                  <span
+                    v-else-if="store.showLinks && u.item.link === 'enchainement'"
+                    class="ench"
+                    title="Enchaînement"
+                    >‿</span
+                  >
+                </span>
+              </span>
+            </template>
+          </div>
 
-        <section class="hard" aria-labelledby="hard-title">
-          <div class="hard-head">
-            <h3 id="hard-title">
-              Mots à travailler
-              <span v-if="hardWords.length" class="count">{{ hardWords.length }}</span>
-            </h3>
-            <div v-if="hardWords.length" class="hard-actions">
-              <template v-if="confirmClear">
-                <span>Effacer toute la liste ?</span>
-                <button type="button" class="link danger" @click="clearHard">Effacer</button>
-                <button type="button" class="link" @click="confirmClear = false">Annuler</button>
-              </template>
-              <button v-else type="button" class="link" @click="confirmClear = true">Effacer la liste</button>
+          <div class="bar">
+            <button type="button" class="btn" :disabled="!speech.supported" @click="listen">
+              {{ listening ? '■ Arrêter' : '▶ Écouter le modèle' }}
+            </button>
+            <button
+              type="button"
+              class="btn"
+              :class="reading.listening.value ? 'rec' : 'primary'"
+              :disabled="!recognitionSupported"
+              @click="toggleReading"
+            >
+              {{ reading.listening.value ? "■ J'ai fini" : '● Lire à voix haute' }}
+            </button>
+            <button
+              type="button"
+              class="btn"
+              aria-label="Paragraphe précédent"
+              :disabled="store.cur <= 0"
+              @click="go(store.cur - 1)"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              class="btn"
+              aria-label="Paragraphe suivant"
+              :disabled="store.cur >= store.paragraphs.length - 1"
+              @click="go(store.cur + 1)"
+            >
+              →
+            </button>
+          </div>
+
+          <div class="legend">
+            <span><i style="background: var(--okbg)"></i>compris</span>
+            <span><i style="background: var(--badbg)"></i>à retravailler</span>
+            <span
+              ><i style="border: 1px solid var(--line)"></i
+              ><em>terme technique, non compté</em></span
+            >
+            <span><b class="lz">‿z</b> liaison <b class="ench">‿</b> enchaînement</span>
+            <span>
+              Clique un mot pour l'entendre et t'entraîner à le répéter. Sous chaque mot : sa
+              prononciation en alphabet phonétique international (API).
+            </span>
+          </div>
+
+          <div v-if="result" class="result">
+            <div class="kpi">
+              <b :class="scoreClass(result.pct)">{{ result.pct }} %</b><span>des mots compris</span>
+            </div>
+            <div class="kpi">
+              <b>{{ fmt(result.sec) }}</b
+              ><span>durée de lecture</span>
+            </div>
+            <div class="kpi">
+              <b>{{ result.wpm ?? '–' }}</b
+              ><span>mots / minute (cible ≈ {{ WPM_TARGET }})</span>
             </div>
           </div>
 
-          <p v-if="!hardWords.length" class="empty">
-            Aucun mot pour l'instant. Lis un paragraphe à voix haute : les mots que la reconnaissance n'a pas compris
-            s'ajouteront ici pour que tu les travailles un par un.
-          </p>
-          <template v-else>
-            <p class="hard-hint">Clique un mot pour l'écouter et le répéter. Chaque réussite le fait reculer dans la liste.</p>
-            <ul class="cards">
-              <li v-for="w in shownHard" :key="w.key">
-                <button type="button" class="card" :class="w.level" @click="openWord(w.key, null)">
-                  <span class="card-word">{{ w.key }}</span>
-                  <span v-if="w.ipa" class="card-ipa">/{{ w.ipa }}/</span>
-                  <span class="card-meta">
-                    <span>manqué {{ w.missed }}×</span>
-                    <span v-if="w.stat?.n">{{ w.stat.ok }}/{{ w.stat.n }} réussi{{ w.stat.ok > 1 ? 's' : '' }}</span>
-                  </span>
-                </button>
-              </li>
-            </ul>
-            <button v-if="hardWords.length > HARD_SHOWN" type="button" class="link" @click="showAllHard = !showAllHard">
-              {{ showAllHard ? 'Afficher moins' : `Afficher les ${hardWords.length - HARD_SHOWN} autres` }}
-            </button>
-          </template>
-        </section>
-      </template>
+          <div class="heard">
+            <template v-if="reading.listening.value || reading.finals.value">
+              <b>Entendu :</b> {{ reading.finals.value }}
+              <i>{{
+                reading.listening.value && !reading.finals.value && !reading.interim.value
+                  ? 'parle maintenant…'
+                  : reading.interim.value
+              }}</i>
+            </template>
+          </div>
 
-      <div v-else-if="store.status === 'error'" class="msg">
-        La transcription phonétique a échoué : {{ store.error }}
-        <button type="button" class="link" @click="store.analyze()">Réessayer</button>
-      </div>
-      <div v-else-if="store.status === 'ready'" class="top">
-        <h2>Aucun paragraphe</h2>
-        <RouterLink :to="{ name: 'texte' }">Saisir un discours</RouterLink>
-      </div>
-      <div v-else class="top"><h2>Chargement…</h2></div>
-    </main>
+          <section class="hard" aria-labelledby="hard-title">
+            <div class="hard-head">
+              <h3 id="hard-title">
+                Mots à travailler
+                <span v-if="hardWords.length" class="count">{{ hardWords.length }}</span>
+              </h3>
+              <div v-if="hardWords.length" class="hard-actions">
+                <template v-if="confirmClear">
+                  <span>Effacer toute la liste ?</span>
+                  <button type="button" class="link danger" @click="clearHard">Effacer</button>
+                  <button type="button" class="link" @click="confirmClear = false">Annuler</button>
+                </template>
+                <button v-else type="button" class="link" @click="confirmClear = true">
+                  Effacer la liste
+                </button>
+              </div>
+            </div>
+
+            <p v-if="!hardWords.length" class="empty">
+              Aucun mot pour l'instant. Lis un paragraphe à voix haute : les mots que la
+              reconnaissance n'a pas compris s'ajouteront ici pour que tu les travailles un par un.
+            </p>
+            <template v-else>
+              <p class="hard-hint">
+                Clique un mot pour l'écouter et le répéter. Chaque réussite le fait reculer dans la
+                liste.
+              </p>
+              <ul class="cards">
+                <li v-for="w in shownHard" :key="w.key">
+                  <button
+                    type="button"
+                    class="card"
+                    :class="w.level"
+                    @click="openWord(w.key, null)"
+                  >
+                    <span class="card-word">{{ w.key }}</span>
+                    <span v-if="w.ipa" class="card-ipa">/{{ w.ipa }}/</span>
+                    <span class="card-meta">
+                      <span>manqué {{ w.missed }}×</span>
+                      <span v-if="w.stat?.n"
+                        >{{ w.stat.ok }}/{{ w.stat.n }} réussi{{ w.stat.ok > 1 ? 's' : '' }}</span
+                      >
+                    </span>
+                  </button>
+                </li>
+              </ul>
+              <button
+                v-if="hardWords.length > HARD_SHOWN"
+                type="button"
+                class="link"
+                @click="showAllHard = !showAllHard"
+              >
+                {{
+                  showAllHard
+                    ? 'Afficher moins'
+                    : `Afficher les ${hardWords.length - HARD_SHOWN} autres`
+                }}
+              </button>
+            </template>
+          </section>
+        </template>
+
+        <div v-else-if="store.status === 'error'" class="msg">
+          La transcription phonétique a échoué : {{ store.error }}
+          <button type="button" class="link" @click="store.analyze()">Réessayer</button>
+        </div>
+        <div v-else-if="store.status === 'ready'" class="top">
+          <h2>Aucun paragraphe</h2>
+          <RouterLink :to="{ name: 'texte' }">Saisir un discours</RouterLink>
+        </div>
+        <div v-else class="top"><h2>Chargement…</h2></div>
+      </main>
+    </div>
 
     <WordPractice
       v-if="practising"
@@ -816,22 +950,204 @@ main {
   flex-wrap: wrap;
   align-items: center;
 }
-.rate {
+/* ---------------------------------------------------------------- top bar (settings) */
+.col {
   display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 8px 0;
+  min-height: 56px;
+  padding: 8px clamp(16px, 4vw, 56px);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+}
+.group {
+  border: 0;
+  margin: 0;
+  padding: 0 20px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  min-width: 0;
+}
+.group + .group {
+  border-left: 1px solid var(--line);
+  padding-left: 20px;
+}
+.group legend {
+  float: left;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
   color: var(--soft);
 }
-.rate.push {
-  margin-left: auto;
+
+/* Toggle switches */
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
 }
-.rate input {
-  accent-color: var(--accent);
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
 }
-.rate select {
+.track {
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--line);
+  position: relative;
+  flex: none;
+  transition: background 0.15s;
+}
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 40, 75, 0.3);
+  transition: transform 0.15s;
+}
+.switch input:checked + .track {
+  background: var(--accent);
+}
+.switch input:checked + .track .knob {
+  transform: translateX(14px);
+}
+.switch input:focus-visible + .track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.switch:has(input:disabled) {
+  opacity: 0.45;
+  cursor: default;
+}
+.lz-sample {
+  font-family: var(--ipa-font);
+  font-weight: 700;
+  color: var(--liaison);
+}
+
+/* Speed slider and voice select */
+.speed,
+.select-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.pill {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--tint);
+  border-radius: 999px;
+  padding: 1px 8px;
+  min-width: 3.4em;
+  text-align: center;
+}
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 6px;
+  margin: 0;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--fill, 50%),
+    var(--line) var(--fill, 50%)
+  );
+  cursor: pointer;
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--accent);
+  box-shadow: 0 1px 3px rgba(0, 40, 75, 0.25);
+}
+.range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--accent);
+}
+.range:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.select {
+  -webkit-appearance: none;
+  appearance: none;
   font: inherit;
-  max-width: 11rem;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2300284B' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  border: 1px solid var(--line);
+  padding: 5px 30px 5px 10px;
+  max-width: 15rem;
+  cursor: pointer;
+}
+.select:hover {
+  border-color: var(--accent);
+}
+.select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track,
+  .knob {
+    transition: none;
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    position: static;
+  }
+  .group,
+  .group + .group {
+    width: 100%;
+    border-left: 0;
+    padding: 0;
+  }
+  .group + .group {
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
 }
 .result {
   display: grid;
@@ -930,7 +1246,9 @@ main {
   border: 1px solid var(--line);
   border-left: 4px solid var(--line);
   padding: 10px 12px;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 .card:hover {
   background: var(--tint);

@@ -32,15 +32,15 @@ export interface PhonemizeRequest {
 
 /** Message sent back: one trace per text, or the error message. */
 export type PhonemizeResponse =
-  | { id: number; results: PhonemeTrace[] }
-  | { id: number; error: string }
+  { id: number; results: PhonemeTrace[] } | { id: number; error: string }
 
 let engine: Promise<ESpeakWorker> | undefined
 
 /** Loads eSpeak once (the data package is fetched from `public/espeak/`) and selects French. */
 function getEngine(): Promise<ESpeakWorker> {
   engine ??= createModule({
-    locateFile: (path) => new URL(`${import.meta.env.BASE_URL}espeak/${path}`, self.location.origin).href,
+    locateFile: (path) =>
+      new URL(`${import.meta.env.BASE_URL}espeak/${path}`, self.location.origin).href,
   }).then((m) => {
     const w = new m.eSpeakNGWorker()
     w.set_voice('fr')
@@ -54,7 +54,8 @@ function phonemize(w: ESpeakWorker, text: string): PhonemeTrace {
   const trace: PhonemeTrace = []
   w.synthesize(text, (_audio, events) => {
     for (const ev of events) {
-      if (ev.type === 'phoneme' && typeof ev.id === 'string' && ev.id) trace.push([ev.text_position, ev.id])
+      if (ev.type === 'phoneme' && typeof ev.id === 'string' && ev.id)
+        trace.push([ev.text_position, ev.id])
     }
     return 0
   })
@@ -68,6 +69,9 @@ self.onmessage = async (e: MessageEvent<PhonemizeRequest>) => {
     const results = texts.map((t) => phonemize(w, t))
     self.postMessage({ id, results } satisfies PhonemizeResponse)
   } catch (err) {
-    self.postMessage({ id, error: err instanceof Error ? err.message : String(err) } satisfies PhonemizeResponse)
+    self.postMessage({
+      id,
+      error: err instanceof Error ? err.message : String(err),
+    } satisfies PhonemizeResponse)
   }
 }

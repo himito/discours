@@ -9,9 +9,26 @@
  */
 
 const UNITS = [
-  'zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf',
-  'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize',
-  'dix-sept', 'dix-huit', 'dix-neuf',
+  'zéro',
+  'un',
+  'deux',
+  'trois',
+  'quatre',
+  'cinq',
+  'six',
+  'sept',
+  'huit',
+  'neuf',
+  'dix',
+  'onze',
+  'douze',
+  'treize',
+  'quatorze',
+  'quinze',
+  'seize',
+  'dix-sept',
+  'dix-huit',
+  'dix-neuf',
 ]
 const TENS = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante']
 
@@ -58,7 +75,8 @@ export function cardinal(n: number): string {
   const millions = Math.floor(n / 1e6)
   const thousands = Math.floor((n % 1e6) / 1000)
   const rest = n % 1000
-  if (millions) parts.push(`${millions === 1 ? 'un' : below1000(millions)}-million${millions > 1 ? 's' : ''}`)
+  if (millions)
+    parts.push(`${millions === 1 ? 'un' : below1000(millions)}-million${millions > 1 ? 's' : ''}`)
   if (thousands) {
     // "cent" and "vingt" lose their plural -s before "mille".
     const t = thousands === 1 ? '' : `${below1000(thousands).replace(/s$/, '')}-`
@@ -113,8 +131,19 @@ export function parseRoman(s: string): number | null {
 /** Canonical Roman numeral of a number, used to validate {@link parseRoman}'s input. */
 function toRoman(n: number): string {
   const table: [number, string][] = [
-    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
-    [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+    [1000, 'M'],
+    [900, 'CM'],
+    [500, 'D'],
+    [400, 'CD'],
+    [100, 'C'],
+    [90, 'XC'],
+    [50, 'L'],
+    [40, 'XL'],
+    [10, 'X'],
+    [9, 'IX'],
+    [5, 'V'],
+    [4, 'IV'],
+    [1, 'I'],
   ]
   let out = ''
   for (const [v, r] of table) {

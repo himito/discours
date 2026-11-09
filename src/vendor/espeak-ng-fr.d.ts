@@ -9,7 +9,16 @@
 
 /** An event emitted during synthesis. */
 export interface ESpeakEvent {
-  type: 'samplerate' | 'sentence' | 'word' | 'phoneme' | 'end' | 'mark' | 'play' | 'msg_terminated' | 'list_terminated'
+  type:
+    | 'samplerate'
+    | 'sentence'
+    | 'word'
+    | 'phoneme'
+    | 'end'
+    | 'mark'
+    | 'play'
+    | 'msg_terminated'
+    | 'list_terminated'
   /** 1-based character position, in the synthesized text, of the word being spoken. */
   text_position: number
   /** Length of the word, for `word` events. */
@@ -30,7 +39,10 @@ export interface ESpeakWorker {
    * Synthesizes `text` synchronously, calling `callback` with each chunk of audio and its events.
    * The callback returns 0 to continue, 1 to abort.
    */
-  synthesize(text: string, callback: (audio: Int16Array, events: ESpeakEvent[]) => number | boolean): void
+  synthesize(
+    text: string,
+    callback: (audio: Int16Array, events: ESpeakEvent[]) => number | boolean,
+  ): void
 }
 
 /** The initialized Emscripten module. */
@@ -43,5 +55,7 @@ export interface ESpeakModule {
  *
  * @param options - `locateFile` gives the URL of `espeak-ng-fr.data`.
  */
-declare const createModule: (options?: { locateFile?: (path: string, prefix: string) => string }) => Promise<ESpeakModule>
+declare const createModule: (options?: {
+  locateFile?: (path: string, prefix: string) => string
+}) => Promise<ESpeakModule>
 export default createModule

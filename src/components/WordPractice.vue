@@ -32,7 +32,9 @@ const speech = useSpeech()
 
 const word = computed(() => props.text.replace(/[«»"“”().,;:!?]/g, ''))
 const key = computed(() => wordKey(word.value))
-const ipa = computed(() => (props.item ? store.ipaOf(props.item) : (store.overrides[key.value] ?? '')))
+const ipa = computed(() =>
+  props.item ? store.ipaOf(props.item) : (store.overrides[key.value] ?? ''),
+)
 const corrected = computed(() => store.overrides[key.value] !== undefined)
 
 const message = ref(
@@ -152,13 +154,24 @@ onBeforeUnmount(() => {
     <div v-if="!editing" class="wpi">
       <template v-if="ipa">/{{ ipa }}/</template>
       <span v-if="item?.link === 'liaison'" class="lz">‿{{ item.liaison }}</span>
-      <button type="button" class="link" @click="edit">{{ ipa ? "Corriger l'API" : "Ajouter l'API" }}</button>
+      <button type="button" class="link" @click="edit">
+        {{ ipa ? "Corriger l'API" : "Ajouter l'API" }}
+      </button>
       <button v-if="corrected" type="button" class="link" @click="reset">Rétablir</button>
     </div>
     <form v-else class="edit" @submit.prevent="save">
-      <input ref="input" v-model="draft" class="field" spellcheck="false" autocomplete="off" aria-label="Transcription API" />
+      <input
+        ref="input"
+        v-model="draft"
+        class="field"
+        spellcheck="false"
+        autocomplete="off"
+        aria-label="Transcription API"
+      />
       <div class="symbols">
-        <button v-for="s in SYMBOLS" :key="s" type="button" class="sym" @click="insert(s)">{{ s }}</button>
+        <button v-for="s in SYMBOLS" :key="s" type="button" class="sym" @click="insert(s)">
+          {{ s }}
+        </button>
       </div>
       <div class="bar">
         <button type="submit" class="btn primary">Enregistrer</button>
@@ -169,14 +182,24 @@ onBeforeUnmount(() => {
     <div class="bar">
       <button type="button" class="btn" @click="say(store.rate)">▶ Écouter</button>
       <button type="button" class="btn" @click="say(0.6)">▶ Lentement</button>
-      <button type="button" class="btn" :class="recording ? 'rec' : 'primary'" :disabled="!recognitionSupported" @click="repeat">
+      <button
+        type="button"
+        class="btn"
+        :class="recording ? 'rec' : 'primary'"
+        :disabled="!recognitionSupported"
+        @click="repeat"
+      >
         {{ recording ? "■ J'écoute…" : '● Répéter' }}
       </button>
     </div>
     <div class="wpr" :class="verdict">{{ message }}</div>
     <div class="wps">
-      <template v-if="stat?.n">Réussi {{ stat.ok }} fois sur {{ stat.n }} essai{{ stat.n > 1 ? 's' : '' }}</template>
-      <template v-if="item?.source === 'espeak' && !corrected"> · API automatique (eSpeak)</template>
+      <template v-if="stat?.n"
+        >Réussi {{ stat.ok }} fois sur {{ stat.n }} essai{{ stat.n > 1 ? 's' : '' }}</template
+      >
+      <template v-if="item?.source === 'espeak' && !corrected">
+        · API automatique (eSpeak)</template
+      >
     </div>
   </div>
 </template>

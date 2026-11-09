@@ -36,7 +36,10 @@ const PREFIXES: Record<string, string> = {"l'":"l","d'":"d","j'":"ʒ","m'":"m","
  * ```
  */
 export function lexiconIpa(raw: string): string {
-  const w = raw.toLowerCase().replace(/’/g, "'").replace(/[«»"“”().,;:!?]/g, '')
+  const w = raw
+    .toLowerCase()
+    .replace(/’/g, "'")
+    .replace(/[«»"“”().,;:!?]/g, '')
   const direct = LEXICON[w]
   if (direct) return direct
   const i = w.indexOf("'")
