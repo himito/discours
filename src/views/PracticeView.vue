@@ -14,6 +14,7 @@
  * panel is open.
  */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import logoMark from '@/assets/logo-mark.svg'
 import WordPractice from '@/components/WordPractice.vue'
 import type { AnalyzedParagraph, Item, WordItem } from '@/phonetics/analyze'
 import { align } from '@/practice/align'
@@ -320,7 +321,7 @@ onBeforeUnmount(() => {
   <div class="app">
     <aside>
       <header class="side-head">
-        <p class="brand">Discours</p>
+        <p class="brand"><img :src="logoMark" alt="" width="28" height="28" /> Discours</p>
         <h1>Entraînement prononciation</h1>
         <p class="hint">
           Écoute le modèle, puis lis à voix haute. Les mots mal compris passent en rouge.
@@ -659,11 +660,16 @@ aside {
   border-bottom: 1px solid var(--line);
 }
 .brand {
-  margin: 0 0 2px;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.brand img {
+  border-radius: 7px;
 }
 .side-head h1 {
   font-size: 18px;

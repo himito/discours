@@ -1,3 +1,5 @@
+<p align="center"><img src="public/logo.svg" alt="Discours" width="300"></p>
+
 # Discours
 
 A web app for practising French pronunciation of a speech. Paste your text and each word is shown
