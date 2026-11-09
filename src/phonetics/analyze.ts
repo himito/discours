@@ -168,6 +168,30 @@ function fixGlides(ph: string[]): string[] {
   return ph.map((p, i) => (p === 'y' && ph[i + 1] && isVowel(ph[i + 1]!) ? 'ɥ' : p))
 }
 
+/**
+ * Restores the palatal nasal ɲ.
+ *
+ * @remarks eSpeak writes the "gn" of *accompagné*, *soignez* as `n j`. That sequence is also a
+ * real one (*panier* /pa.nje/), so it is only rewritten when the word is spelled with "gn", once
+ * per "gn".
+ *
+ * @param ph - Phonemes of one word.
+ * @param spelling - The word as written.
+ */
+function fixPalatal(ph: string[], spelling: string): string[] {
+  let left = (spelling.toLowerCase().match(/gn/g) ?? []).length
+  if (!left) return ph
+  const out: string[] = []
+  for (let i = 0; i < ph.length; i++) {
+    if (left && ph[i] === 'n' && ph[i + 1] === 'j') {
+      out.push('ɲ')
+      i++
+      left--
+    } else out.push(ph[i]!)
+  }
+  return out
+}
+
 /** Phonemes of words pronounced alone, by normalized word. Shared across analyses. */
 const isolatedCache = new Map<string, string[]>()
 
@@ -230,7 +254,7 @@ export async function analyzeText(
         const owner = ownerAt(norm.owner, pos - 1)
         if (owner >= 0) phonemes[owner]!.push(ph)
       }
-      phonemes.forEach((ph, i) => (phonemes[i] = fixGlides(ph)))
+      phonemes.forEach((ph, i) => (phonemes[i] = fixPalatal(fixGlides(ph), sentence.tokens[i]!.text)))
 
       const sentenceItems: Item[] = sentence.tokens.map((tok, i) => {
         if (tok.kind !== 'word') return { kind: tok.kind, text: tok.text, space: tok.space }
