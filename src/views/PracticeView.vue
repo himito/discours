@@ -33,15 +33,28 @@ onMounted(() => void store.analyze())
 
 const para = computed<AnalyzedParagraph | undefined>(() => store.paragraphs[store.cur])
 
-/** Paragraphs grouped by section, with their position in the section. */
+/** Paragraphs grouped by section, with their position in the section and how many were read. */
 const sections = computed(() => {
-  const out: { title: string; items: { p: AnalyzedParagraph; index: number; n: number }[] }[] = []
+  const out: { title: string; read: number; items: { p: AnalyzedParagraph; index: number; n: number }[] }[] = []
   store.paragraphs.forEach((p, index) => {
     let sec = out[out.length - 1]
-    if (!sec || sec.title !== p.section) out.push((sec = { title: p.section, items: [] }))
+    if (!sec || sec.title !== p.section) out.push((sec = { title: p.section, read: 0, items: [] }))
     sec.items.push({ p, index, n: sec.items.length + 1 })
+    if (store.best[p.id] !== undefined) sec.read++
   })
   return out
+})
+
+/** Paragraphs read at least once, and their average best score. */
+const progress = computed(() => {
+  const scores = store.paragraphs.map((p) => store.best[p.id]).filter((v): v is number => v !== undefined)
+  const total = store.paragraphs.length
+  return {
+    read: scores.length,
+    total,
+    pct: total ? (scores.length / total) * 100 : 0,
+    average: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+  }
 })
 
 const position = computed(() => {
@@ -75,8 +88,8 @@ watch(
       const a = nav.value
       const b = a?.querySelector<HTMLElement>('.pbtn.on')
       if (!a || !b) return
-      const r = b.offsetTop - a.offsetTop
-      if (r < a.scrollTop || r > a.scrollTop + a.clientHeight - 40) a.scrollTop = r - a.clientHeight / 3
+      const r = b.offsetTop
+      if (r < a.scrollTop || r > a.scrollTop + a.clientHeight - 60) a.scrollTop = r - a.clientHeight / 3
     })
   },
 )
@@ -224,11 +237,33 @@ function stopAll() {
 
 // ---------------------------------------------------------------- words to work on
 
+const HARD_SHOWN = 12
+
+/** Words to work on, most missed first, with their IPA and practice results. */
 const hardWords = computed(() =>
   Object.entries(store.hard)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 40),
+    .map(([key, missed]) => {
+      const item = findWord(key)
+      const stat = store.wordStats[key]
+      return {
+        key,
+        missed,
+        ipa: item ? store.ipaOf(item) : (store.overrides[key] ?? ''),
+        stat,
+        level: missed >= 3 ? 'high' : missed === 2 ? 'mid' : 'low',
+      }
+    }),
 )
+const showAllHard = ref(false)
+const shownHard = computed(() => (showAllHard.value ? hardWords.value : hardWords.value.slice(0, HARD_SHOWN)))
+const confirmClear = ref(false)
+
+function clearHard() {
+  store.clearHard()
+  confirmClear.value = false
+  showAllHard.value = false
+}
 
 const practising = shallowRef<{ text: string; item: WordItem | null } | null>(null)
 const wordPanel = ref<InstanceType<typeof WordPractice>>()
@@ -268,29 +303,50 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app">
-    <aside ref="nav">
-      <h1>Entraînement prononciation</h1>
-      <p class="hint">
-        Choisis un paragraphe, écoute-le, puis lis-le à voix haute. Les mots que la reconnaissance vocale n'a pas
-        compris apparaissent en rouge.
-      </p>
-      <div v-for="(s, si) in sections" :key="si" class="sec">
-        <b v-if="s.title">{{ s.title }}</b>
-        <button
-          v-for="it in s.items"
-          :key="it.p.id + it.index"
-          type="button"
-          class="pbtn"
-          :class="{ on: it.index === store.cur }"
-          @click="go(it.index)"
-        >
-          <span>{{ it.p.text.slice(0, 46) }}…</span>
-          <span v-if="store.best[it.p.id] !== undefined" class="score" :class="scoreClass(store.best[it.p.id]!)">
-            {{ store.best[it.p.id] }}%
-          </span>
-        </button>
-      </div>
-      <RouterLink class="edit" :to="{ name: 'texte' }">Modifier le texte</RouterLink>
+    <aside>
+      <header class="side-head">
+        <p class="brand">Discours</p>
+        <h1>Entraînement prononciation</h1>
+        <p class="hint">Écoute le modèle, puis lis à voix haute. Les mots mal compris passent en rouge.</p>
+        <div v-if="progress.total" class="overall">
+          <div class="overall-row">
+            <span><b>{{ progress.read }}</b> / {{ progress.total }} paragraphes lus</span>
+            <span v-if="progress.average !== null" :class="scoreClass(progress.average)">moyenne {{ progress.average }} %</span>
+          </div>
+          <div class="meter" role="progressbar" :aria-valuenow="progress.read" aria-valuemin="0" :aria-valuemax="progress.total">
+            <span :style="{ width: `${progress.pct}%` }" />
+          </div>
+        </div>
+      </header>
+
+      <nav ref="nav" class="plist" aria-label="Paragraphes">
+        <section v-for="(s, si) in sections" :key="si" class="sec">
+          <h2 v-if="s.title" class="sec-title">
+            <span>{{ s.title }}</span>
+            <span class="sec-count">{{ s.read }}/{{ s.items.length }}</span>
+          </h2>
+          <button
+            v-for="it in s.items"
+            :key="it.p.id + it.index"
+            type="button"
+            class="pbtn"
+            :class="{ on: it.index === store.cur }"
+            :aria-current="it.index === store.cur ? 'true' : undefined"
+            @click="go(it.index)"
+          >
+            <span class="pnum">{{ it.n }}</span>
+            <span class="ptext">{{ it.p.text }}</span>
+            <span v-if="store.best[it.p.id] !== undefined" class="score" :class="scoreClass(store.best[it.p.id]!)">
+              {{ store.best[it.p.id] }}%
+            </span>
+            <span v-else class="score none" aria-label="pas encore lu">–</span>
+          </button>
+        </section>
+      </nav>
+
+      <footer class="side-foot">
+        <RouterLink class="btn edit" :to="{ name: 'texte' }">✎ Modifier le texte</RouterLink>
+      </footer>
     </aside>
 
     <main>
@@ -384,16 +440,45 @@ onBeforeUnmount(() => {
           </template>
         </div>
 
-        <div class="hard">
-          <h3>Mots à travailler</h3>
-          <div class="chips">
-            <span v-if="!hardWords.length" class="empty">Rien pour l'instant. Lis un paragraphe pour commencer.</span>
-            <button v-for="[w, n] in hardWords" :key="w" type="button" class="chip" title="Pratiquer ce mot" @click="openWord(w, null)">
-              {{ w }}<small>×{{ n }}</small>
-            </button>
+        <section class="hard" aria-labelledby="hard-title">
+          <div class="hard-head">
+            <h3 id="hard-title">
+              Mots à travailler
+              <span v-if="hardWords.length" class="count">{{ hardWords.length }}</span>
+            </h3>
+            <div v-if="hardWords.length" class="hard-actions">
+              <template v-if="confirmClear">
+                <span>Effacer toute la liste ?</span>
+                <button type="button" class="link danger" @click="clearHard">Effacer</button>
+                <button type="button" class="link" @click="confirmClear = false">Annuler</button>
+              </template>
+              <button v-else type="button" class="link" @click="confirmClear = true">Effacer la liste</button>
+            </div>
           </div>
-          <div><button type="button" class="link" @click="store.clearHard()">Effacer la liste</button></div>
-        </div>
+
+          <p v-if="!hardWords.length" class="empty">
+            Aucun mot pour l'instant. Lis un paragraphe à voix haute : les mots que la reconnaissance n'a pas compris
+            s'ajouteront ici pour que tu les travailles un par un.
+          </p>
+          <template v-else>
+            <p class="hard-hint">Clique un mot pour l'écouter et le répéter. Chaque réussite le fait reculer dans la liste.</p>
+            <ul class="cards">
+              <li v-for="w in shownHard" :key="w.key">
+                <button type="button" class="card" :class="w.level" @click="openWord(w.key, null)">
+                  <span class="card-word">{{ w.key }}</span>
+                  <span v-if="w.ipa" class="card-ipa">/{{ w.ipa }}/</span>
+                  <span class="card-meta">
+                    <span>manqué {{ w.missed }}×</span>
+                    <span v-if="w.stat?.n">{{ w.stat.ok }}/{{ w.stat.n }} réussi{{ w.stat.ok > 1 ? 's' : '' }}</span>
+                  </span>
+                </button>
+              </li>
+            </ul>
+            <button v-if="hardWords.length > HARD_SHOWN" type="button" class="link" @click="showAllHard = !showAllHard">
+              {{ showAllHard ? 'Afficher moins' : `Afficher les ${hardWords.length - HARD_SHOWN} autres` }}
+            </button>
+          </template>
+        </section>
       </template>
 
       <div v-else-if="store.status === 'error'" class="msg">
@@ -424,74 +509,171 @@ onBeforeUnmount(() => {
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
   min-height: 100vh;
 }
+/* ---------------------------------------------------------------- sidebar */
 aside {
   border-right: 1px solid var(--line);
-  padding: 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
   background: #fafbfc;
   position: sticky;
   top: 0;
   height: 100vh;
-  overflow-y: auto;
-}
-aside h1 {
-  font-size: 17px;
-  margin: 0 0 4px;
-}
-aside .hint {
-  font-size: 13px;
-  color: var(--soft);
-  margin: 0 0 14px;
-  line-height: 1.45;
-}
-.sec {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: 10px;
+  min-height: 0;
 }
-.sec > b {
+.side-head {
+  padding: 22px 20px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  margin: 0 0 2px;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--soft);
+  font-size: 12px;
   font-weight: 600;
-  padding: 0 8px;
+  color: var(--accent);
 }
-.pbtn {
+.side-head h1 {
+  font-size: 18px;
+  line-height: 1.25;
+  margin: 0 0 6px;
+}
+.hint {
+  font-size: 13px;
+  color: var(--soft);
+  margin: 0;
+  line-height: 1.45;
+}
+.overall {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.overall-row {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  align-items: center;
+  font-size: 12px;
+  color: var(--soft);
+}
+.overall-row b {
+  color: var(--ink);
+  font-size: 14px;
+}
+.overall-row .s-hi,
+.overall-row .s-mid,
+.overall-row .s-lo {
+  font-weight: 600;
+}
+.meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.meter span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.plist {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 10px 16px;
+  position: relative;
+}
+.sec + .sec {
+  margin-top: 6px;
+}
+.sec-title {
+  position: sticky;
+  top: -8px;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 10px 6px;
+  background: #fafbfc;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.sec-count {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--soft);
+}
+.pbtn {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
   text-align: left;
   border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0 6px 6px 0;
   background: none;
-  padding: 6px 8px;
+  padding: 8px 8px 8px 7px;
   font-size: 13px;
   color: var(--ink);
-  line-height: 1.3;
+  line-height: 1.4;
 }
 .pbtn:hover {
   background: var(--tint);
 }
 .pbtn.on {
-  background: var(--ink);
-  color: #fff;
+  background: var(--tint);
+  border-left-color: var(--accent);
 }
-.pbtn span:first-child {
+.pnum {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--soft);
+  padding-top: 2px;
+  text-align: right;
+}
+.pbtn.on .pnum {
+  color: var(--accent);
+}
+.ptext {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
+  color: var(--soft);
+}
+.pbtn.on .ptext {
+  color: var(--ink);
+  font-weight: 600;
 }
 .score {
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 600;
-  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-top: 1px;
+}
+.score.s-hi {
+  background: var(--okbg);
+}
+.score.s-mid {
+  background: #fdf1d8;
+}
+.score.s-lo {
+  background: var(--badbg);
+}
+.score.none {
+  color: var(--line);
 }
 .s-hi {
   color: var(--ok);
@@ -502,14 +684,18 @@ aside .hint {
 .s-lo {
   color: var(--bad);
 }
-.pbtn.on .score {
-  color: #fff;
+.side-foot {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: #fafbfc;
 }
 .edit {
-  margin-top: 18px;
-  padding: 0 8px;
-  font-size: 13px;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 8px 14px;
 }
+
 main {
   padding: 28px clamp(16px, 4vw, 56px);
   display: flex;
@@ -677,36 +863,118 @@ main {
   color: var(--accent);
   font-style: normal;
 }
+/* ---------------------------------------------------------------- words to work on */
 .hard {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.hard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .hard h3 {
   margin: 0;
-  font-size: 15px;
-}
-.chips {
+  font-size: 17px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
 }
-.chip {
-  border: 1px solid var(--bad);
-  color: var(--bad);
-  background: #fff;
-  padding: 4px 10px;
-  font-size: 14px;
-}
-.chip:hover {
-  background: var(--badbg);
-}
-.chip small {
+.count {
   font-family: var(--mono);
-  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bad);
+  background: var(--badbg);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.hard-actions {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--soft);
+}
+.link.danger {
+  color: var(--bad);
+  font-weight: 600;
+}
+.hard-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--soft);
+}
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line);
+  padding: 10px 12px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.card:hover {
+  background: var(--tint);
+  border-color: var(--accent);
+}
+.card.high {
+  border-left-color: var(--bad);
+}
+.card.mid {
+  border-left-color: #d9a21b;
+}
+.card.low {
+  border-left-color: var(--ipa-soft, #9aa6c8);
+}
+.card-word {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.card-ipa {
+  font-family: var(--ipa-font);
+  font-size: 14px;
+  color: var(--accent);
+}
+.card-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--soft);
+}
+.card.high .card-meta span:first-child {
+  color: var(--bad);
+  font-weight: 600;
 }
 .empty {
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px dashed var(--line);
   font-size: 14px;
+  line-height: 1.5;
   color: var(--soft);
 }
 .msg {
@@ -739,10 +1007,12 @@ main {
   aside {
     border-right: 0;
     border-bottom: 1px solid var(--line);
-    max-height: 40vh;
     height: auto;
+    max-height: 55vh;
     position: static;
-    overflow: auto;
+  }
+  .side-head {
+    padding: 16px;
   }
   .text {
     font-size: 20px;
