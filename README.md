@@ -3,18 +3,19 @@
 # Discours
 
 A web app for practising French pronunciation of a speech. Paste your text and each word is shown
-with its pronunciation in the International Phonetic Alphabet (IPA, *API* in French), plus the
+with its pronunciation in the International Phonetic Alphabet (IPA, _API_ in French), plus the
 liaisons to make. You can listen to a model voice, read aloud and see which words were understood,
 then work on the difficult ones one by one.
 
 The training screen and its engines follow an earlier single-page prototype,
-*Entrainement prononciation*, generalized to any speech.
+_Entrainement prononciation_, generalized to any speech.
 
 ## Contents
 
 - [Features](#features)
 - [Getting started](#getting-started)
 - [Deployment](#deployment)
+- [Offline copy](#offline-copy)
 - [Writing a speech](#writing-a-speech)
 - [How it works](#how-it-works)
 - [Project structure](#project-structure)
@@ -26,8 +27,8 @@ The training screen and its engines follow an earlier single-page prototype,
 
 - **IPA under each word**, split into syllables (`/a.pʁɑ̃.ti.saʒ/`). It comes from a hand-checked
   lexicon when the word is in it, otherwise from eSpeak-NG.
-- **Liaisons and enchaînements**: `‿z` after *les* in *les enfants*, `‿` after *avec* in
-  *avec elle*.
+- **Liaisons and enchaînements**: `‿z` after _les_ in _les enfants_, `‿` after _avec_ in
+  _avec elle_.
 - **Model voice**: the paragraph is read in a single utterance by the best French voice in the
   browser, and the word being spoken is highlighted. The rate is adjustable (0.6× to 1.1×).
 - **Read aloud**: speech recognition follows your reading. Words turn green when understood and
@@ -39,6 +40,8 @@ The training screen and its engines follow an earlier single-page prototype,
   applies everywhere the word appears.
 - **Progress is saved** in the browser: best score per paragraph, words to work on, per-word
   success rate.
+- **Offline copy**: _Télécharger pour hors ligne_ downloads the whole app as one HTML file, with
+  your speech, corrections and progress in it. Open it from disk, no server needed.
 
 ## Getting started
 
@@ -52,18 +55,19 @@ npm run dev
 Then open the URL shown by Vite **in Google Chrome or Microsoft Edge**. Speech recognition is not
 available in Safari or Firefox; the model voice and the IPA still work there.
 
-The microphone is needed for *Lire à voix haute* and *Répéter*. Allow it when the browser asks.
+The microphone is needed for _Lire à voix haute_ and _Répéter_. Allow it when the browser asks.
 
-| Command              | What it does                                                    |
-| -------------------- | --------------------------------------------------------------- |
-| `npm run dev`        | Development server with hot reload                              |
-| `npm run build`      | Type-check and production build in `dist/`                      |
-| `npm run preview`    | Serve the production build                                      |
-| `npm run lint`       | oxlint then ESLint, with fixes                                  |
-| `npm run format`     | Prettier on `src/`                                              |
-| `npm run espeak`     | Rebuild the French eSpeak-NG bundle (run by `dev` and `build`)  |
-| `npm run docs`       | Generate the API documentation in `docs/api/` (TypeDoc)         |
-| `npm run deploy`     | Build for a sub-path and copy into a folder of apps (see below)  |
+| Command           | What it does                                                      |
+| ----------------- | ----------------------------------------------------------------- |
+| `npm run dev`     | Development server with hot reload                                |
+| `npm run build`   | Type-check and production build in `dist/`, offline file included |
+| `npm run preview` | Serve the production build                                        |
+| `npm run lint`    | oxlint then ESLint, with fixes                                    |
+| `npm run format`  | Prettier on `src/`                                                |
+| `npm run offline` | Build only `dist/discours-hors-ligne.html` (see below)            |
+| `npm run espeak`  | Rebuild the French eSpeak-NG bundle (run by `dev` and `build`)    |
+| `npm run docs`    | Generate the API documentation in `docs/api/` (TypeDoc)           |
+| `npm run deploy`  | Build for a sub-path and copy into a folder of apps (see below)   |
 
 ## Deployment
 
@@ -90,6 +94,33 @@ Links to inner pages (such as `/apps/discours/texte`) work in two ways:
 - on static hosts without rewrites (GitHub Pages), through a `404.html` that stores the requested
   path in `sessionStorage` (`spa-redirect`) and redirects to the app. The first script in
   `index.html` restores the path.
+
+## Offline copy
+
+`npm run build` also produces `dist/discours-hors-ligne.html` (about 1.8 MB): the whole app in a
+single file that works when opened from disk (`file://`). `scripts/build-offline.mjs` runs
+`vite build --mode offline`, which:
+
+- uses relative paths and hash routing (`#/texte`), since there is no server to rewrite URLs;
+- puts all the code in one chunk, with the eSpeak worker inlined (a page opened from disk cannot
+  load a worker script);
+- embeds the French eSpeak data in the worker (`virtual:espeak-data` in `vite.config.ts`) instead
+  of fetching it;
+- inlines the stylesheet, images and favicon.
+
+The **Télécharger pour hors ligne** button in the sidebar fetches that file and inserts the
+current state (text, IPA corrections, settings, progress) at the `<!--discours-seed-->` marker
+(`src/offline.ts`). The copy opens on that speech and then saves its own progress, under a key
+derived from its text, so copies of different speeches don't overwrite each other. Progress made
+offline stays in the copy; it isn't merged back into the online app.
+
+What works offline: the IPA, the liaisons, editing the text, and the model voice if the system has
+a French voice (macOS Thomas or Amélie; Chrome's _Google français_ needs a connection). Speech
+recognition, and so _Lire à voix haute_ and _Répéter_, needs a connection in Chrome and Edge even
+from the file. Fonts fall back to system fonts.
+
+The button only works from a build (`npm run build` then `npm run preview`, or a deployment): the
+development server has no offline file and says so.
 
 ## Writing a speech
 
@@ -132,19 +163,19 @@ flowchart LR
 1. **Parsing** (`src/phonetics/normalize.ts`). The text is split into paragraphs, sentences and
    tokens (words, punctuation, reading marks), keeping the original spacing.
 2. **Normalization.** eSpeak-NG reads some written forms badly, so they are rewritten first:
-   *M.* → Monsieur, *XXIe* / *21e* → vingt-et-unième, *Louis XIV* → Louis 14, *PIB* → pé-i-bé,
-   *1 200 000* → 1200000, *qu'aujourd'hui*. A character map keeps track of which original word
+   _M._ → Monsieur, _XXIe_ / _21e_ → vingt-et-unième, _Louis XIV_ → Louis 14, _PIB_ → pé-i-bé,
+   _1 200 000_ → 1200000, _qu'aujourd'hui_. A character map keeps track of which original word
    each character comes from.
 3. **Phonemization** (`src/phonetics/espeak.worker.ts`). eSpeak-NG runs in a web worker. Its
    synthesis events give every phoneme along with the position of the word that produced it,
    which is how the IPA is aligned word by word. The audio is thrown away.
 4. **Choosing the IPA** (`src/phonetics/analyze.ts`). If the word is in the hand-checked lexicon
    (`src/phonetics/lexicon.ts`, about 600 hand-checked words split into syllables), its entry is
-   used. Otherwise eSpeak's phonemes are cleaned up (stress marks removed, ɥ restored in *suis*,
-   *nuit*) and split into syllables.
+   used. Otherwise eSpeak's phonemes are cleaned up (stress marks removed, ɥ restored in _suis_,
+   _nuit_) and split into syllables.
 5. **Liaisons.** Every distinct word is also phonemized on its own. A final consonant that only
-   appears in context is a liaison (*les* /le/, *les enfants* /lez‿ɑ̃fɑ̃/). A pronounced final
-   consonant before a vowel is an enchaînement (*avec‿elle*).
+   appears in context is a liaison (_les_ /le/, _les enfants_ /lez‿ɑ̃fɑ̃/). A pronounced final
+   consonant before a vowel is an enchaînement (_avec‿elle_).
 
 The French eSpeak data is cut down from 23 MB (all languages) to about 700 KB by
 `scripts/build-espeak-fr.mjs`. It loads in the background when the app starts, and a 750-word
@@ -153,7 +184,7 @@ speech is analyzed in under a second.
 ### Model voice
 
 `src/composables/useSpeech.ts` uses the browser's speech synthesis, with the same voice choice as
-the prototype: fr-FR voices, *Google français* first, then Thomas, Amélie, Denise or Henri. A
+the prototype: fr-FR voices, _Google français_ first, then Thomas, Amélie, Denise or Henri. A
 different voice can be picked in the toolbar.
 
 The whole paragraph is spoken as **one utterance**, which keeps intonation natural across
@@ -167,10 +198,10 @@ events drive the highlighting.
 subsequence, with a tolerant comparison. This is the prototype's algorithm:
 
 - Words are compared without accents or punctuation.
-- Elisions are matched part by part: *l'équipe* → `l` + `equipe`.
-- Plural, feminine and verb endings are ignored (*arrivé* = *arrivés*).
+- Elisions are matched part by part: _l'équipe_ → `l` + `equipe`.
+- Plural, feminine and verb endings are ignored (_arrivé_ = _arrivés_).
 
-A word is *understood* when all its parts were heard. Technical terms (acronyms such as *CNRS*,
+A word is _understood_ when all its parts were heard. Technical terms (acronyms such as _CNRS_,
 alphanumeric terms) are shown in italics and **not counted** in the score: recognizers transcribe
 them unpredictably. Only the best score of each paragraph is kept.
 
@@ -191,6 +222,8 @@ Scores are tied to the paragraph text: editing a paragraph resets its score.
 ```text
 scripts/
   build-espeak-fr.mjs     French-only eSpeak-NG bundle (data trimming + module patch)
+  build-offline.mjs       single-file offline build (dist/discours-hors-ligne.html)
+  deploy.sh               build for a sub-path and copy into a folder of apps
 src/
   phonetics/
     analyze.ts            analyzeText(): IPA, syllables, liaisons; worker client
@@ -205,6 +238,7 @@ src/
     useRecognition.ts     speech recognition: continuous reading and single words
   stores/
     discours.ts           Pinia store: text, analysis, settings, progress (persisted)
+  offline.ts              download of the single-file offline copy
   views/
     PracticeView.vue      training screen (route /)
     EditorView.vue        speech editor (route /texte)
@@ -242,13 +276,13 @@ the whole pipeline. Run `npm run docs` to browse them as HTML pages.
 ## Limitations
 
 - **Speech recognition** only works in Chrome and Edge, and sends the audio to the browser
-  vendor's servers. It judges whether a word was *understood*, not whether it was perfectly
+  vendor's servers. It judges whether a word was _understood_, not whether it was perfectly
   pronounced.
-- **The lexicon ignores context.** It gives *tous* /tu/ even in *à tous* (/tus/), and only covers
+- **The lexicon ignores context.** It gives _tous_ /tu/ even in _à tous_ (/tus/), and only covers
   the vocabulary of the speech it was written for.
-- **eSpeak-NG makes occasional mistakes** (*fils* /fil/ instead of /fis/) and makes some optional
-  liaisons (*arrivés‿z en*). Click a word to correct it.
-- **The model voice depends on the browser and the system.** Chrome's *Google français* and
+- **eSpeak-NG makes occasional mistakes** (_fils_ /fil/ instead of /fis/) and makes some optional
+  liaisons (_arrivés‿z en_). Click a word to correct it.
+- **The model voice depends on the browser and the system.** Chrome's _Google français_ and
   macOS's Thomas or Amélie sound best.
 - **Fonts** (IBM Plex, Charis SIL) load from Google Fonts. Offline, system fonts are used.
 

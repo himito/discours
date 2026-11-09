@@ -53,9 +53,11 @@ export interface ESpeakModule {
 /**
  * Loads the module.
  *
- * @param options - `locateFile` gives the URL of `espeak-ng-fr.data`.
+ * @param options - `locateFile` gives the URL of `espeak-ng-fr.data`. `getPreloadedPackage`
+ * supplies its content directly instead, and nothing is fetched.
  */
 declare const createModule: (options?: {
   locateFile?: (path: string, prefix: string) => string
+  getPreloadedPackage?: (name: string, size: number) => ArrayBuffer
 }) => Promise<ESpeakModule>
 export default createModule

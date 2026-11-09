@@ -21,6 +21,7 @@ import { align } from '@/practice/align'
 import { useDiscoursStore } from '@/stores/discours'
 import { useSpeech } from '@/composables/useSpeech'
 import { recognitionSupported, useReading } from '@/composables/useRecognition'
+import { downloadOfflineCopy, isOfflineCopy } from '@/offline'
 
 const store = useDiscoursStore()
 const speech = useSpeech()
@@ -121,6 +122,22 @@ watch(
     })
   },
 )
+
+const downloading = ref(false)
+const downloadError = ref('')
+
+/** Downloads the app as one HTML file, with the current speech and progress in it. */
+async function downloadOffline() {
+  downloading.value = true
+  downloadError.value = ''
+  try {
+    await downloadOfflineCopy(store.snapshot())
+  } catch (e) {
+    downloadError.value = e instanceof Error ? e.message : String(e)
+  } finally {
+    downloading.value = false
+  }
+}
 
 function scoreClass(v: number) {
   return v >= 90 ? 's-hi' : v >= 70 ? 's-mid' : 's-lo'
@@ -410,6 +427,35 @@ onBeforeUnmount(() => {
 
       <footer class="side-foot">
         <RouterLink class="btn edit" :to="{ name: 'texte' }">✎ Modifier le texte</RouterLink>
+        <button
+          v-if="!isOfflineCopy"
+          type="button"
+          class="offline"
+          :aria-busy="downloading"
+          :disabled="downloading"
+          @click="downloadOffline"
+        >
+          <span class="offline-icon" aria-hidden="true">
+            <span v-if="downloading" class="spinner" />
+            <svg v-else viewBox="0 0 20 20" width="18" height="18">
+              <path
+                d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 14.5V16h12v-1.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="offline-text">
+            <span class="offline-title">{{
+              downloading ? 'Préparation du fichier…' : 'Télécharger pour hors ligne'
+            }}</span>
+            <span class="offline-sub">Un fichier HTML avec votre texte et vos progrès</span>
+          </span>
+        </button>
+        <p v-if="downloadError" class="offline-error" role="alert">{{ downloadError }}</p>
       </footer>
     </aside>
     <div v-if="drawerOpen" class="backdrop" aria-hidden="true" @click="drawerOpen = false" />
@@ -889,9 +935,90 @@ aside {
   color: var(--bad);
 }
 .side-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 12px 16px;
   border-top: 1px solid var(--line);
   background: #fafbfc;
+}
+.offline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.offline:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--tint);
+}
+.offline:disabled {
+  cursor: progress;
+}
+.offline-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  background: var(--tint);
+  color: var(--accent);
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+.offline:hover:not(:disabled) .offline-icon {
+  background: var(--accent);
+  color: #fff;
+}
+.offline-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.offline-title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.offline-sub {
+  font-size: 12px;
+  color: var(--soft);
+  opacity: 0.8;
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+.offline-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--bad);
+  text-align: center;
 }
 .edit {
   justify-content: center;

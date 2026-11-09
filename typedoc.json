@@ -10,7 +10,8 @@
     "src/practice/align.ts",
     "src/composables/useSpeech.ts",
     "src/composables/useRecognition.ts",
-    "src/stores/discours.ts"
+    "src/stores/discours.ts",
+    "src/offline.ts"
   ],
   "tsconfig": "tsconfig.docs.json",
   "out": "docs/api",

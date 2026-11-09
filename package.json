@@ -12,6 +12,8 @@
     "preview": "vite preview",
     "prebuild-only": "npm run espeak",
     "build-only": "vite build",
+    "postbuild-only": "node scripts/build-offline.mjs",
+    "offline": "node scripts/build-offline.mjs",
     "type-check": "vue-tsc --build",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",

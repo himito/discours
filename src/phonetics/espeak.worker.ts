@@ -13,6 +13,7 @@
  * @packageDocumentation
  */
 import createModule, { type ESpeakWorker } from '@/vendor/espeak-ng-fr.js'
+import embeddedData from 'virtual:espeak-data'
 
 /**
  * Phonemes of one text, in order.
@@ -36,12 +37,30 @@ export type PhonemizeResponse =
 
 let engine: Promise<ESpeakWorker> | undefined
 
-/** Loads eSpeak once (the data package is fetched from `public/espeak/`) and selects French. */
+/** Decodes base64 into an `ArrayBuffer`. */
+function fromBase64(b64: string): ArrayBuffer {
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return bytes.buffer
+}
+
+/**
+ * Loads eSpeak once and selects French.
+ *
+ * @remarks The data package is fetched from `public/espeak/`, except in the offline build, where
+ * it is embedded in the code.
+ */
 function getEngine(): Promise<ESpeakWorker> {
-  engine ??= createModule({
-    locateFile: (path) =>
-      new URL(`${import.meta.env.BASE_URL}espeak/${path}`, self.location.origin).href,
-  }).then((m) => {
+  const data = embeddedData
+  engine ??= createModule(
+    data
+      ? { getPreloadedPackage: () => fromBase64(data) }
+      : {
+          locateFile: (path) =>
+            new URL(`${import.meta.env.BASE_URL}espeak/${path}`, self.location.origin).href,
+        },
+  ).then((m) => {
     const w = new m.eSpeakNGWorker()
     w.set_voice('fr')
     return w

@@ -2,7 +2,8 @@
  * Application state: the speech, its analysis, settings and practice progress.
  *
  * @remarks Everything except the analysis is saved in `localStorage` (key `discours:v2`) and
- * restored on load.
+ * restored on load. A downloaded offline copy starts from the state embedded in it, then saves
+ * under its own key, derived from its text.
  *
  * @packageDocumentation
  */
@@ -10,7 +11,23 @@ import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { analyzeText, wordKey, type AnalyzedParagraph, type WordItem } from '@/phonetics/analyze'
 
-const STORAGE_KEY = 'discours:v2'
+/** State embedded in a downloaded offline copy, if this is one. */
+const seed = (typeof window !== 'undefined' ? window.__DISCOURS_SEED__ : undefined) as
+  Partial<Saved> | undefined
+
+/**
+ * Storage key of an offline copy.
+ *
+ * @remarks Pages opened from disk share one `localStorage`, so each copy gets a key derived from
+ * the text it was downloaded with: two copies of different speeches don't overwrite each other.
+ */
+function offlineKey(text: string): string {
+  let h = 5381
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0
+  return `discours:offline:${(h >>> 0).toString(36)}`
+}
+
+const STORAGE_KEY = seed ? offlineKey(seed.text ?? '') : 'discours:v2'
 
 /** Example speech shown on first use, and by "Charger l'exemple". */
 export const SAMPLE_TEXT = `# Introduction
@@ -28,8 +45,8 @@ interface WordStat {
   n: number
 }
 
-/** What is saved in `localStorage`. */
-interface Saved {
+/** What is saved in `localStorage`, and embedded in an offline copy. */
+export interface Saved {
   text: string
   overrides: Record<string, string>
   showIpa: boolean
@@ -42,13 +59,18 @@ interface Saved {
   wordStats: Record<string, WordStat>
 }
 
-/** Reads the saved state; missing or corrupt data gives defaults. */
+/**
+ * Reads the saved state; missing or corrupt data gives the embedded state of an offline copy, or
+ * defaults.
+ */
 function load(): Partial<Saved> {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Partial<Saved>
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw) as Partial<Saved>
   } catch {
-    return {}
+    /* storage unavailable or corrupt */
   }
+  return seed ?? {}
 }
 
 /**
@@ -170,23 +192,27 @@ export const useDiscoursStore = defineStore('discours', () => {
     hard.value = {}
   }
 
+  /** The state to save: the speech, settings and progress. */
+  function snapshot(): Saved {
+    return {
+      text: text.value,
+      overrides: overrides.value,
+      showIpa: showIpa.value,
+      showLinks: showLinks.value,
+      rate: rate.value,
+      voiceURI: voiceURI.value,
+      cur: cur.value,
+      best: best.value,
+      hard: hard.value,
+      wordStats: wordStats.value,
+    }
+  }
+
   watch(
     [text, overrides, showIpa, showLinks, rate, voiceURI, cur, best, hard, wordStats],
     () => {
-      const data: Saved = {
-        text: text.value,
-        overrides: overrides.value,
-        showIpa: showIpa.value,
-        showLinks: showLinks.value,
-        rate: rate.value,
-        voiceURI: voiceURI.value,
-        cur: cur.value,
-        best: best.value,
-        hard: hard.value,
-        wordStats: wordStats.value,
-      }
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot()))
       } catch {
         /* storage unavailable: progress just won't persist */
       }
@@ -214,5 +240,6 @@ export const useDiscoursStore = defineStore('discours', () => {
     recordScore,
     recordWordTry,
     clearHard,
+    snapshot,
   }
 })
