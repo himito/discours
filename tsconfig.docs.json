@@ -8,6 +8,7 @@
     "src/composables/**/*.ts",
     "src/stores/**/*.ts",
     "src/offline.ts",
+    "src/pdf.ts",
     "src/vendor/*.d.ts"
   ],
   "compilerOptions": {

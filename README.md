@@ -16,6 +16,7 @@ _Entrainement prononciation_, generalized to any speech.
 - [Getting started](#getting-started)
 - [Deployment](#deployment)
 - [Offline copy](#offline-copy)
+- [PDF](#pdf)
 - [Writing a speech](#writing-a-speech)
 - [How it works](#how-it-works)
 - [Project structure](#project-structure)
@@ -40,6 +41,8 @@ _Entrainement prononciation_, generalized to any speech.
   applies everywhere the word appears.
 - **Progress is saved** in the browser: best score per paragraph, words to work on, per-word
   success rate.
+- **PDF**: the whole speech or one section, as training cards (two A5 cards per A4 page, one per
+  section, to cut out) or as a numbered A4 document, with the IPA, liaisons and pauses.
 - **Offline copy**: _Télécharger pour hors ligne_ downloads the whole app as one HTML file, with
   your speech, corrections and progress in it. Open it from disk, no server needed.
 
@@ -121,6 +124,32 @@ from the file. Fonts fall back to system fonts.
 
 The button only works from a build (`npm run build` then `npm run preview`, or a deployment): the
 development server has no offline file and says so.
+
+## PDF
+
+**⤓ Télécharger en PDF** in the sidebar opens the PDF screen (route `/pdf`). Choose what to
+include (the whole speech or one section), the template, the text size, and what to show (IPA,
+liaisons, pauses, words to work on), then **Télécharger le PDF**. The preview shows the exact
+pages of the PDF.
+
+- **Fiches**: one card per section, two A5 landscape cards per A4 page, with a cut line. The rail
+  on the left shows the section number and title. Each card has tick boxes for rehearsals, the
+  reading time at 135 words per minute and, on the section's last card, its words to work on. A
+  section too long for one card continues on the next (1/2, 2/2).
+- **Document**: A4 pages with a legend of the marks and page numbers. A paragraph is never split
+  across pages, and a section title never ends a page.
+
+Both templates are laid out as exact A4 pages: `PrintView.vue` measures every paragraph and title
+at final size in a hidden box, then fills the cards or pages. `src/pdf.ts` captures each page as
+a 240 dpi JPEG with [html-to-image](https://github.com/bubkoo/html-to-image) and writes the PDF
+itself (one image per page, about 450 KB per page). The PDF looks exactly like the preview, but
+its text can't be selected or searched.
+
+The web fonts are embedded in the capture, which is why the Google Fonts stylesheet is loaded with
+`crossorigin` in `index.html`. Without a connection (offline copy), system fonts are used.
+
+`?partie=2` preselects the second section and `?modele=document` the document template. The old
+`/imprimer` links redirect to `/pdf`.
 
 ## Writing a speech
 
@@ -234,17 +263,22 @@ src/
     espeak.worker.ts      web worker running it (normal build)
   practice/
     align.ts              transcript ↔ text alignment, word comparison
+    units.ts              words with their punctuation, as displayed and printed
   composables/
     useSpeech.ts          model voice (speechSynthesis), voice choice, highlighting
     useRecognition.ts     speech recognition: continuous reading and single words
   stores/
     discours.ts           Pinia store: text, analysis, settings, progress (persisted)
   offline.ts              download of the single-file offline copy
+  pdf.ts                  page capture and PDF writing
   views/
     PracticeView.vue      training screen (route /)
+    PrintView.vue         PDF templates: cards and document (route /pdf)
     EditorView.vue        speech editor (route /texte)
   components/
     WordPractice.vue      single-word practice panel
+    PrintParagraph.vue    a paragraph in the PDF: words, IPA, liaisons, marks
+    PrintDocBlock.vue     a block of the document template: header, title or paragraph
   vendor/
     espeak-ng-fr.d.ts     types of the generated eSpeak module
     espeak-ng-fr.js       generated, git-ignored

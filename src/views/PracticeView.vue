@@ -18,6 +18,7 @@ import logoMark from '@/assets/logo-mark.svg'
 import WordPractice from '@/components/WordPractice.vue'
 import type { AnalyzedParagraph, Item, WordItem } from '@/phonetics/analyze'
 import { align } from '@/practice/align'
+import { displayUnits, type Unit } from '@/practice/units'
 import { useDiscoursStore } from '@/stores/discours'
 import { useSpeech } from '@/composables/useSpeech'
 import { recognitionSupported, useReading } from '@/composables/useRecognition'
@@ -146,38 +147,8 @@ function scoreClass(v: number) {
 // ---------------------------------------------------------------- display units
 
 /** What is displayed: a word with its attached punctuation, or a reading mark. */
-type Unit =
-  | { kind: 'word'; index: number; item: WordItem; pre: string; post: string }
-  | { kind: 'mark'; text: string }
-
-const OPENING = /^[«“([]$/
-
-/**
- * Display units of the current paragraph.
- *
- * @remarks Opening punctuation (« “ ( [) attaches to the next word and other punctuation to the
- * previous one, so a word and its punctuation highlight together.
- */
-const units = computed<Unit[]>(() => {
-  const out: Unit[] = []
-  let pre = ''
-  para.value?.items.forEach((item, index) => {
-    if (item.kind === 'word') {
-      out.push({ kind: 'word', index, item, pre, post: '' })
-      pre = ''
-    } else if (item.kind === 'mark') {
-      out.push({ kind: 'mark', text: item.text === '[→]' ? '→' : item.text })
-    } else if (OPENING.test(item.text)) {
-      pre += item.text + (item.space ? ' ' : '')
-    } else {
-      const last = out[out.length - 1]
-      if (last?.kind === 'word')
-        last.post += (item.text === '…' || /^[,.)\]»”]/.test(item.text) ? '' : ' ') + item.text
-      else pre += item.text + ' '
-    }
-  })
-  return out
-})
+/** Display units of the current paragraph (see {@link displayUnits}). */
+const units = computed<Unit[]>(() => displayUnits(para.value?.items ?? []))
 
 // ---------------------------------------------------------------- model voice
 
@@ -426,7 +397,15 @@ onBeforeUnmount(() => {
       </nav>
 
       <footer class="side-foot">
-        <RouterLink class="btn edit" :to="{ name: 'texte' }">✎ Modifier le texte</RouterLink>
+        <div class="foot-actions">
+          <RouterLink class="btn edit" :to="{ name: 'texte' }">✎ Modifier le texte</RouterLink>
+          <RouterLink
+            class="btn edit"
+            :to="{ name: 'pdf' }"
+            title="Fiches d’entraînement ou document, avec l’API"
+            >⤓ Télécharger en PDF</RouterLink
+          >
+        </div>
         <button
           v-if="!isOfflineCopy"
           type="button"
@@ -1020,8 +999,14 @@ aside {
   color: var(--bad);
   text-align: center;
 }
+/* Stacked: the sidebar is too narrow for both labels on one line. */
+.foot-actions {
+  display: grid;
+  gap: 8px;
+}
 .edit {
   justify-content: center;
+  white-space: nowrap;
   text-decoration: none;
   font-size: 14px;
   padding: 8px 14px;

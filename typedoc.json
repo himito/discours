@@ -9,10 +9,12 @@
     "src/phonetics/espeak.ts",
     "src/phonetics/espeak.worker.ts",
     "src/practice/align.ts",
+    "src/practice/units.ts",
     "src/composables/useSpeech.ts",
     "src/composables/useRecognition.ts",
     "src/stores/discours.ts",
-    "src/offline.ts"
+    "src/offline.ts",
+    "src/pdf.ts"
   ],
   "tsconfig": "tsconfig.docs.json",
   "out": "docs/api",
