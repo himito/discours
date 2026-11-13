@@ -8,13 +8,15 @@
  * - **Lentement**: hear it at 0.6×,
  * - **Répéter**: say it, checked by speech recognition.
  *
- * Unlike the prototype, the IPA can also be corrected here.
+ * Unlike the prototype, the IPA can also be corrected here, and the word's French definitions are
+ * shown, from the Wiktionnaire (see `src/practice/dictionary.ts`).
  *
  * Emits `close` on × or Escape. Exposes `repeat()` so the parent can bind it to the space bar.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { matchKeys, normForMatch, wordKey, type WordItem } from '@/phonetics/analyze'
 import { closeEnough } from '@/practice/align'
+import { candidates, lookup, pageUrl, type Definition } from '@/practice/dictionary'
 import { listenOnce, recognitionSupported } from '@/composables/useRecognition'
 import { useSpeech } from '@/composables/useSpeech'
 import { useDiscoursStore } from '@/stores/discours'
@@ -129,6 +131,28 @@ function reset() {
   editing.value = false
 }
 
+// ---------------------------------------------------------------- definition
+
+const definition = ref<Definition | null>(null)
+const defState = ref<'loading' | 'done' | 'none' | 'skip' | 'error'>('loading')
+const lookupAbort = new AbortController()
+/** Where to search by hand when there is no definition. */
+const searchUrl = computed(() => pageUrl(candidates(word.value)[0] ?? word.value))
+
+async function loadDefinition() {
+  // Acronyms, numbers and other technical terms are not dictionary words.
+  if (props.item?.tech || !/\p{L}{2}/u.test(word.value)) {
+    defState.value = 'skip'
+    return
+  }
+  try {
+    definition.value = await lookup(word.value, lookupAbort.signal)
+    defState.value = definition.value ? 'done' : 'none'
+  } catch {
+    if (!lookupAbort.signal.aborted) defState.value = 'error'
+  }
+}
+
 function close() {
   stopRepeat()
   emit('close')
@@ -139,10 +163,12 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener('keydown', onKey)
   say(store.rate)
+  void loadDefinition()
 })
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKey)
   stopRepeat()
+  lookupAbort.abort()
 })
 </script>
 
@@ -201,6 +227,47 @@ onBeforeUnmount(() => {
         · API automatique (eSpeak)</template
       >
     </div>
+
+    <section v-if="defState !== 'skip'" class="def" aria-labelledby="def-title" aria-live="polite">
+      <h3 id="def-title">
+        Définition
+        <a
+          v-if="definition"
+          class="src"
+          :href="definition.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Wiktionnaire ↗</a
+        >
+      </h3>
+      <p v-if="defState === 'loading'" class="def-note">Recherche dans le Wiktionnaire…</p>
+      <p v-else-if="defState === 'error'" class="def-note">
+        Définition indisponible : pas de connexion au Wiktionnaire.
+      </p>
+      <p v-else-if="defState === 'none'" class="def-note">
+        Pas de définition trouvée.
+        <a :href="searchUrl" target="_blank" rel="noopener noreferrer"
+          >Chercher sur le Wiktionnaire ↗</a
+        >
+      </p>
+      <template v-else-if="definition">
+        <p v-if="definition.formOf" class="form-of">
+          <i>{{ word }}</i> :
+          {{ definition.formOf.charAt(0).toLowerCase() + definition.formOf.slice(1) }}
+        </p>
+        <div v-for="(e, ei) in definition.entries" :key="ei" class="entry">
+          <p class="pos">
+            {{ e.pos }}<template v-if="definition.lemma"> · {{ definition.lemma }}</template>
+          </p>
+          <ol>
+            <li v-for="(sense, si) in e.senses" :key="si">
+              {{ sense.text }}
+              <q v-if="sense.example" class="ex">{{ sense.example }}</q>
+            </li>
+          </ol>
+        </div>
+      </template>
+    </section>
   </div>
 </template>
 
@@ -310,6 +377,57 @@ onBeforeUnmount(() => {
 }
 .sym:hover {
   background: var(--tint);
+}
+.def {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.def h3 {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+.src {
+  font-size: 12px;
+  font-weight: 400;
+}
+.def-note,
+.form-of {
+  margin: 0;
+  font-size: 14px;
+  color: var(--soft);
+}
+.entry + .entry {
+  margin-top: 4px;
+}
+.pos {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.def ol {
+  margin: 0;
+  padding-left: 1.4em;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.ex {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--soft);
+  quotes: '« ' ' »';
 }
 @media (max-width: 760px) {
   /* Bottom sheet, above the sticky action bar. */

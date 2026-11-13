@@ -10,6 +10,7 @@
     "src/phonetics/espeak.worker.ts",
     "src/practice/align.ts",
     "src/practice/units.ts",
+    "src/practice/dictionary.ts",
     "src/composables/useSpeech.ts",
     "src/composables/useRecognition.ts",
     "src/stores/discours.ts",

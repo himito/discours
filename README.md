@@ -37,6 +37,9 @@ _Entrainement prononciation_, generalized to any speech.
   (target ≈ 135).
 - **Words to work on**: missed words are collected in a list. Click one (or any word in the text)
   to hear it, hear it slowly, and repeat it until it's recognized.
+- **Definitions**: the word panel also shows the word's French meanings, from the
+  [Wiktionnaire](https://fr.wiktionary.org). Inflected forms lead to their base word
+  (_recherches_ → _recherche_, _remercie_ → _remercier_).
 - **IPA corrections**: if a transcription is wrong, click the word and correct it. The correction
   applies everywhere the word appears.
 - **Progress is saved** in the browser: best score per paragraph, words to work on, per-word
@@ -220,6 +223,20 @@ The whole paragraph is spoken as **one utterance**, which keeps intonation natur
 sentences. `/` becomes a comma and `//` an ellipsis, which the voice reads as pauses. Word boundary
 events drive the highlighting.
 
+### Definitions
+
+`src/practice/dictionary.ts` fetches the word's page from the French Wiktionary through the
+MediaWiki API (`action=parse`, which allows browser requests with `origin=*`) and reads, in the
+French section, the numbered definitions of each part of speech with their first example. It
+tries the word as written, without an elided article or pronoun (_l'application_ →
+_application_), and in lower case. When every definition only points to another word (_Pluriel
+de recherche_), the base word's page is fetched too; "form of" lines are dropped when the page
+has real definitions. At most 3 parts of speech and 4 meanings each are shown, with a link to the
+full page (content under CC BY-SA). Results are cached for the session.
+
+The word is sent to Wikimedia when the panel opens. Technical terms (acronyms, numbers) are not
+looked up. Without a connection, the panel says the definition is unavailable.
+
 ### Reading score
 
 `src/composables/useRecognition.ts` runs continuous French speech recognition.
@@ -264,6 +281,7 @@ src/
   practice/
     align.ts              transcript ↔ text alignment, word comparison
     units.ts              words with their punctuation, as displayed and printed
+    dictionary.ts         French definitions from the Wiktionnaire
   composables/
     useSpeech.ts          model voice (speechSynthesis), voice choice, highlighting
     useRecognition.ts     speech recognition: continuous reading and single words
