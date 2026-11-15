@@ -35,6 +35,9 @@ _Entrainement prononciation_, generalized to any speech.
 - **Read aloud**: speech recognition follows your reading. Words turn green when understood and
   red when missed, live. At the end you get a score, the reading time and your words per minute
   (target ≈ 135).
+- **Whole speech**: _Discours entier_ shows every paragraph on one page. Listen to it from start
+  to finish, or read it aloud in one go: the page follows you, and each paragraph you reach is
+  scored.
 - **Words to work on**: missed words are collected in a list. Click one (or any word in the text)
   to hear it, hear it slowly, and repeat it until it's recognized.
 - **Definitions**: the word panel also shows the word's French meanings, from the
@@ -223,6 +226,20 @@ The whole paragraph is spoken as **one utterance**, which keeps intonation natur
 sentences. `/` becomes a comma and `//` an ellipsis, which the voice reads as pauses. Word boundary
 events drive the highlighting.
 
+### Whole speech
+
+`src/views/DocumentView.vue` (route `/discours`) shows all paragraphs, grouped by section.
+Clicking a paragraph number makes it the starting point.
+
+- **Écouter** speaks the paragraphs one after the other, one utterance each (the same text as on
+  the training screen, `spokenText` in `src/practice/units.ts`), with a short silence between
+  paragraphs and a longer one before a new section. The current paragraph is scrolled into view.
+- **Lire à voix haute** runs one continuous recognition session and aligns the transcript with
+  all the words from the starting paragraph on, so you can stop wherever you like. On
+  _Terminer la lecture_, every paragraph up to the last word heard gets its own score, exactly as
+  if it had been read alone, and its missed words go to the words to work on. A summary gives the
+  overall score, time and words per minute. Space starts and ends the reading.
+
 ### Definitions
 
 `src/practice/dictionary.ts` fetches the word's page from the French Wiktionary through the
@@ -291,10 +308,12 @@ src/
   pdf.ts                  page capture and PDF writing
   views/
     PracticeView.vue      training screen (route /)
+    DocumentView.vue      whole speech: continuous listening and reading (route /discours)
     PrintView.vue         PDF templates: cards and document (route /pdf)
     EditorView.vue        speech editor (route /texte)
   components/
     WordPractice.vue      single-word practice panel
+    SpeechText.vue        a paragraph's words with IPA, liaisons and reading colours
     PrintParagraph.vue    a paragraph in the PDF: words, IPA, liaisons, marks
     PrintDocBlock.vue     a block of the document template: header, title or paragraph
   vendor/

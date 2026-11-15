@@ -10,6 +10,7 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'entrainement', component: PracticeView },
     { path: '/texte', name: 'texte', component: () => import('@/views/EditorView.vue') },
+    { path: '/discours', name: 'discours', component: () => import('@/views/DocumentView.vue') },
     { path: '/pdf', name: 'pdf', component: () => import('@/views/PrintView.vue') },
     { path: '/imprimer', redirect: (to) => ({ name: 'pdf', query: to.query }) },
     { path: '/:pathMatch(.*)*', redirect: '/' },

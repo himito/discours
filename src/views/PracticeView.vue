@@ -16,9 +16,9 @@
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import logoMark from '@/assets/logo-mark.svg'
 import WordPractice from '@/components/WordPractice.vue'
-import type { AnalyzedParagraph, Item, WordItem } from '@/phonetics/analyze'
+import type { AnalyzedParagraph, WordItem } from '@/phonetics/analyze'
 import { align } from '@/practice/align'
-import { displayUnits, type Unit } from '@/practice/units'
+import { displayUnits, spokenIndex, spokenText, type Unit } from '@/practice/units'
 import { useDiscoursStore } from '@/stores/discours'
 import { useSpeech } from '@/composables/useSpeech'
 import { recognitionSupported, useReading } from '@/composables/useRecognition'
@@ -152,35 +152,15 @@ const units = computed<Unit[]>(() => displayUnits(para.value?.items ?? []))
 
 // ---------------------------------------------------------------- model voice
 
-/**
- * Text given to the speech synthesizer, and the character range of each word in it.
- *
- * @remarks `/` is read as a comma and `//` as an ellipsis (a longer pause). `[→]` is silent. The
- * ranges map boundary events (`charIndex`) back to items, to highlight the spoken word.
- */
-const spoken = computed(() => {
-  let text = ''
-  const ranges: { a: number; b: number; index: number }[] = []
-  para.value?.items.forEach((item: Item, index) => {
-    if (item.kind === 'word') {
-      ranges.push({ a: text.length, b: text.length + item.text.length + 1, index })
-      text += item.text + ' '
-    } else if (item.kind === 'mark') {
-      if (item.text !== '[→]') text = text.trimEnd() + (item.text === '//' ? '… ' : ', ')
-    } else if (/^[,.…)\]»”]/.test(item.text)) {
-      text = text.trimEnd() + item.text + ' '
-    } else text += item.text + ' '
-  })
-  return { text: text.trimEnd(), ranges }
-})
+/** Text given to the speech synthesizer (see {@link spokenText}). */
+const spoken = computed(() => spokenText(para.value?.items ?? []))
 
 const listening = computed(() => !!para.value && speech.speakingId.value === para.value.id)
 
 /** Item being spoken by the model voice. */
 const sayIndex = computed(() => {
-  if (!listening.value || speech.charIndex.value < 0) return -1
-  const c = speech.charIndex.value
-  return spoken.value.ranges.find((r) => c >= r.a && c < r.b)?.index ?? -1
+  if (!listening.value) return -1
+  return spokenIndex(spoken.value.ranges, speech.charIndex.value)
 })
 
 function listen() {
@@ -398,6 +378,12 @@ onBeforeUnmount(() => {
 
       <footer class="side-foot">
         <div class="foot-actions">
+          <RouterLink
+            class="btn edit primary"
+            :to="{ name: 'discours' }"
+            title="Écouter et lire tout le discours d’un seul tenant"
+            >▤ Discours entier</RouterLink
+          >
           <RouterLink class="btn edit" :to="{ name: 'texte' }">✎ Modifier le texte</RouterLink>
           <RouterLink
             class="btn edit"
