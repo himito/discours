@@ -11,16 +11,22 @@ import type { AnalyzedParagraph } from '@/phonetics/analyze'
 import { displayUnits } from '@/practice/units'
 import { useDiscoursStore } from '@/stores/discours'
 
+/** Component props. */
 const props = defineProps<{
+  /** The paragraph to show. */
   paragraph: AnalyzedParagraph
   /** Number of the paragraph in its section, as in the sidebar. */
   n: number
+  /** Whether to show the IPA under each word. */
   ipa: boolean
+  /** Whether to show liaisons and enchaînements. */
   links: boolean
+  /** Whether to show the reading marks (`/`, `//`, `→`). */
   marks: boolean
 }>()
 
 const store = useDiscoursStore()
+/** The paragraph as words with punctuation, and reading marks. */
 const units = computed(() => displayUnits(props.paragraph.items))
 </script>
 

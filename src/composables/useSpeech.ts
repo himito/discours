@@ -11,8 +11,9 @@
  *
  * @packageDocumentation
  */
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, type Ref, type ShallowRef } from 'vue'
 
+/** Whether the browser has speech synthesis. */
 const supported = typeof window !== 'undefined' && 'speechSynthesis' in window
 /** French voices, best first: Google, then Thomas / Amélie / Denise / Henri, then the rest. */
 const voices = shallowRef<SpeechSynthesisVoice[]>([])
@@ -100,16 +101,32 @@ function stop() {
   speechSynthesis.cancel()
 }
 
+/** The model voice's state and controls, from {@link useSpeech}. */
+export interface Speech {
+  /** Whether the browser has speech synthesis. */
+  supported: boolean
+  /** French voices, best first: Google, then Thomas / Amélie / Denise / Henri, then the rest. */
+  voices: ShallowRef<SpeechSynthesisVoice[]>
+  /** Id passed to `speak` while it is speaking, else `null`. */
+  speakingId: Ref<string | null>
+  /** Character index, in the spoken text, of the word being spoken, or -1. */
+  charIndex: Ref<number>
+  /**
+   * Speaks `text`, stopping whatever was playing.
+   *
+   * @param id - Identifies the utterance in `speakingId` (a paragraph id, `word:…`).
+   * @returns `true` when the text was spoken to the end, `false` if it was stopped or failed.
+   */
+  speak: (id: string, text: string, opts: SpeakOptions) => Promise<boolean>
+  /** Stops speaking. */
+  stop: () => void
+}
+
 /**
  * Access to the model voice.
  *
- * @returns
- * - `supported`: whether the browser has speech synthesis.
- * - `voices`: French voices, best first.
- * - `speakingId`: id passed to `speak` while it is speaking, else `null`.
- * - `charIndex`: character index of the word being spoken, or -1.
- * - `speak`, `stop`.
+ * @remarks The state is shared by every component: only one utterance plays at a time.
  */
-export function useSpeech() {
+export function useSpeech(): Speech {
   return { supported, voices, speakingId, charIndex, speak, stop }
 }

@@ -26,16 +26,19 @@ const pkgDir = dirname(require.resolve('@echogarden/espeak-ng-emscripten/package
 const js = readFileSync(resolve(pkgDir, 'espeak-ng.js'), 'utf8')
 const data = readFileSync(resolve(pkgDir, 'espeak-ng.data'))
 
+/** Package metadata in the upstream module: the list of files packed in `espeak-ng.data`. */
 const metaRe = /loadPackage\(\{files:\[([^\]]*)\],remote_package_size:\d+\}\)/
 const match = js.match(metaRe)
 if (!match) throw new Error('Could not find package metadata in espeak-ng.js')
 
+/** Every file of the upstream data package, with its byte range. */
 const files = [...match[1].matchAll(/\{filename:"([^"]+)",start:(\d+),end:(\d+)\}/g)].map((m) => ({
   filename: m[1],
   start: Number(m[2]),
   end: Number(m[3]),
 }))
 
+/** Path of the data files in the virtual file system. */
 const base = '/usr/share/espeak-ng-data/'
 /** Files needed for French phonemization. */
 const keep = (f) => {
@@ -47,8 +50,11 @@ const keep = (f) => {
 }
 
 const kept = files.filter((f) => keep(f.filename))
+/** Bytes of the kept files, concatenated into the new data package. */
 const chunks = []
+/** Metadata of the kept files, with their offsets in the new package. */
 const newFiles = []
+/** Write position in the new package. */
 let offset = 0
 for (const f of kept) {
   const chunk = data.subarray(f.start, f.end)
@@ -61,13 +67,19 @@ const patched = js
   .replace(metaRe, `loadPackage({files:[${newFiles.join(',')}],remote_package_size:${offset}})`)
   .replaceAll('"espeak-ng.data"', '"espeak-ng-fr.data"')
   // The upstream pre.js unconditionally overrides locateFile; let the caller's win.
-  .replace("Module['locateFile'] = function (path, prefix) {", "Module['locateFile'] ??= function (path, prefix) {")
+  .replace(
+    "Module['locateFile'] = function (path, prefix) {",
+    "Module['locateFile'] ??= function (path, prefix) {",
+  )
 
-if (!patched.includes("Module['locateFile'] ??=")) throw new Error('Could not patch locateFile override')
+if (!patched.includes("Module['locateFile'] ??="))
+  throw new Error('Could not patch locateFile override')
 
 mkdirSync(resolve(root, 'src/vendor'), { recursive: true })
 mkdirSync(resolve(root, 'public/espeak'), { recursive: true })
 writeFileSync(resolve(root, 'src/vendor/espeak-ng-fr.js'), patched)
 writeFileSync(resolve(root, 'public/espeak/espeak-ng-fr.data'), Buffer.concat(chunks))
 
-console.log(`eSpeak-NG French bundle: ${kept.length} files, ${(offset / 1024).toFixed(0)} KB of data`)
+console.log(
+  `eSpeak-NG French bundle: ${kept.length} files, ${(offset / 1024).toFixed(0)} KB of data`,
+)

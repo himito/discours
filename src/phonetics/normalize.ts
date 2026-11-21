@@ -23,6 +23,7 @@ export type TokenKind = 'word' | 'punct' | 'mark'
 
 /** A token of a paragraph, with its position in the original text. */
 export interface Token {
+  /** Word, punctuation or reading mark. */
   kind: TokenKind
   /** Original text of the token. */
   text: string
@@ -36,6 +37,7 @@ export interface Token {
 
 /** A sentence: the tokens up to a final `.`, `!`, `?` or `…`, with any closing quote. */
 export interface Sentence {
+  /** Tokens of the sentence, in order. */
   tokens: Token[]
 }
 
@@ -45,6 +47,7 @@ export interface Paragraph {
   section: string
   /** The line, trimmed. */
   text: string
+  /** The line split into sentences. */
   sentences: Sentence[]
 }
 
@@ -153,8 +156,11 @@ const TOKEN_RE = new RegExp(
 /** Symbols that are pronounced (and therefore get an IPA transcription). */
 const SPOKEN_SYMBOLS = /^[%€$£&+=°§@]$/
 
+/** Reading marks: `/`, `//` and `[→]`. */
 const MARK = /^(?:\/{1,2}|\[→\])$/
+/** Punctuation that ends a sentence. */
 const SENTENCE_END = /^[.!?…]+$/
+/** Closing quotes and brackets, kept with the sentence they end. */
 const CLOSERS = /^[»”"')\]]$/
 
 /**

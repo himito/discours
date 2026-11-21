@@ -7,7 +7,7 @@
  *
  * @packageDocumentation
  */
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 /* Minimal typings: the Web Speech recognition API is not in TypeScript's DOM lib. */
 interface RecognitionAlternative {
@@ -47,6 +47,22 @@ export const recognitionSupported = !!Ctor
 const MIC_BLOCKED =
   'Le micro est bloqué. Autorise le micro pour cette page dans ton navigateur, puis réessaie.'
 
+/** Continuous recognition state and controls, from {@link useReading}. */
+export interface Reading {
+  /** Whether recognition is running. */
+  listening: Ref<boolean>
+  /** Confirmed transcript so far. */
+  finals: Ref<string>
+  /** Transcript still being recognized (may change). */
+  interim: Ref<string>
+  /** Message to show, for example when the microphone is blocked; `''` otherwise. */
+  error: Ref<string>
+  /** Starts listening, clearing the previous transcript. */
+  start: () => void
+  /** Stops listening; the last results may still arrive shortly after. */
+  stop: () => void
+}
+
 /**
  * Recognition of a paragraph read aloud.
  *
@@ -54,19 +70,20 @@ const MIC_BLOCKED =
  * {@link useReading | stop} is called.
  *
  * @returns
- * - `listening`: whether recognition is running.
- * - `finals`: confirmed transcript so far.
- * - `interim`: transcript still being recognized.
- * - `error`: message to show, for example when the microphone is blocked.
- * - `start()`, `stop()`.
+ * See {@link Reading}.
  */
-export function useReading() {
+export function useReading(): Reading {
+  /** Whether recognition is running. */
   const listening = ref(false)
+  /** Confirmed transcript so far. */
   const finals = ref('')
+  /** Transcript still being recognized. */
   const interim = ref('')
+  /** Message to show, or `''`. */
   const error = ref('')
   let rec: Recognition | null = null
 
+  /** Starts a new session, clearing the previous transcript. */
   function start() {
     if (!Ctor) return
     finals.value = ''
@@ -110,6 +127,7 @@ export function useReading() {
     }
   }
 
+  /** Ends the session (no automatic restart). */
   function stop() {
     listening.value = false
     try {
@@ -122,15 +140,20 @@ export function useReading() {
   return { listening, finals, interim, error, start, stop }
 }
 
+/** A single-word recognition in progress, from {@link listenOnce}. */
+export interface ListenSession {
+  /** Up to 5 alternatives for what was heard, best first; empty if nothing was heard. */
+  result: Promise<string[]>
+  /** Stops listening; `result` then resolves with what was heard so far. */
+  cancel: () => void
+}
+
 /**
  * Recognizes one short utterance, for single-word practice.
  *
- * @returns
- * - `result`: resolves with up to 5 alternatives, most likely first (empty if nothing was heard).
- *   It rejects if the microphone is blocked.
- * - `cancel`: aborts listening.
+ * @returns The session; its `result` rejects if the microphone is blocked.
  */
-export function listenOnce(): { result: Promise<string[]>; cancel: () => void } {
+export function listenOnce(): ListenSession {
   if (!Ctor) return { result: Promise.resolve([]), cancel: () => {} }
   const rec = new Ctor()
   rec.lang = 'fr-FR'

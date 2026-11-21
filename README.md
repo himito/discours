@@ -15,7 +15,6 @@ _Entrainement prononciation_, generalized to any speech.
 - [Features](#features)
 - [Getting started](#getting-started)
 - [Deployment](#deployment)
-- [Offline copy](#offline-copy)
 - [PDF](#pdf)
 - [Writing a speech](#writing-a-speech)
 - [How it works](#how-it-works)
@@ -49,8 +48,6 @@ _Entrainement prononciation_, generalized to any speech.
   success rate.
 - **PDF**: the whole speech or one section, as training cards (two A5 cards per A4 page, one per
   section, to cut out) or as a numbered A4 document, with the IPA, liaisons and pauses.
-- **Offline copy**: _Télécharger pour hors ligne_ downloads the whole app as one HTML file, with
-  your speech, corrections and progress in it. Open it from disk, no server needed.
 
 ## Getting started
 
@@ -66,17 +63,16 @@ available in Safari or Firefox; the model voice and the IPA still work there.
 
 The microphone is needed for _Lire à voix haute_ and _Répéter_. Allow it when the browser asks.
 
-| Command           | What it does                                                      |
-| ----------------- | ----------------------------------------------------------------- |
-| `npm run dev`     | Development server with hot reload                                |
-| `npm run build`   | Type-check and production build in `dist/`, offline file included |
-| `npm run preview` | Serve the production build                                        |
-| `npm run lint`    | oxlint then ESLint, with fixes                                    |
-| `npm run format`  | Prettier on `src/`                                                |
-| `npm run offline` | Build only `dist/discours-hors-ligne.html` (see below)            |
-| `npm run espeak`  | Rebuild the French eSpeak-NG bundle (run by `dev` and `build`)    |
-| `npm run docs`    | Generate the API documentation in `docs/api/` (TypeDoc)           |
-| `npm run deploy`  | Build for a sub-path and copy into a folder of apps (see below)   |
+| Command           | What it does                                                    |
+| ----------------- | --------------------------------------------------------------- |
+| `npm run dev`     | Development server with hot reload                              |
+| `npm run build`   | Type-check and production build in `dist/`                      |
+| `npm run preview` | Serve the production build                                      |
+| `npm run lint`    | oxlint then ESLint, with fixes                                  |
+| `npm run format`  | Prettier on `src/`                                              |
+| `npm run espeak`  | Rebuild the French eSpeak-NG bundle (run by `dev` and `build`)  |
+| `npm run docs`    | Generate the API documentation in `docs/api/` (TypeDoc)         |
+| `npm run deploy`  | Build for a sub-path and copy into a folder of apps (see below) |
 
 ## Deployment
 
@@ -104,33 +100,6 @@ Links to inner pages (such as `/apps/discours/texte`) work in two ways:
   path in `sessionStorage` (`spa-redirect`) and redirects to the app. The first script in
   `index.html` restores the path.
 
-## Offline copy
-
-`npm run build` also produces `dist/discours-hors-ligne.html` (about 1.8 MB): the whole app in a
-single file that works when opened from disk (`file://`). `scripts/build-offline.mjs` runs
-`vite build --mode offline`, which:
-
-- uses relative paths and hash routing (`#/texte`), since there is no server to rewrite URLs;
-- puts all the code in one chunk and runs eSpeak directly in the page rather than in a web
-  worker: Chrome won't start a worker from a page opened from disk;
-- embeds the French eSpeak data (`virtual:espeak-data` in `vite.config.ts`) instead of fetching
-  it;
-- inlines the stylesheet, images and favicon.
-
-The **Télécharger pour hors ligne** button in the sidebar fetches that file and inserts the
-current state (text, IPA corrections, settings, progress) at the `<!--discours-seed-->` marker
-(`src/offline.ts`). The copy opens on that speech and then saves its own progress, under a key
-derived from its text, so copies of different speeches don't overwrite each other. Progress made
-offline stays in the copy; it isn't merged back into the online app.
-
-What works offline: the IPA, the liaisons, editing the text, and the model voice if the system has
-a French voice (macOS Thomas or Amélie; Chrome's _Google français_ needs a connection). Speech
-recognition, and so _Lire à voix haute_ and _Répéter_, needs a connection in Chrome and Edge even
-from the file. Fonts fall back to system fonts.
-
-The button only works from a build (`npm run build` then `npm run preview`, or a deployment): the
-development server has no offline file and says so.
-
 ## PDF
 
 **⤓ Télécharger en PDF** in the sidebar opens the PDF screen (route `/pdf`). Choose what to
@@ -152,7 +121,7 @@ itself (one image per page, about 450 KB per page). The PDF looks exactly like t
 its text can't be selected or searched.
 
 The web fonts are embedded in the capture, which is why the Google Fonts stylesheet is loaded with
-`crossorigin` in `index.html`. Without a connection (offline copy), system fonts are used.
+`crossorigin` in `index.html`. Without a connection, system fonts are used.
 
 `?partie=2` preselects the second section and `?modele=document` the document template. The old
 `/imprimer` links redirect to `/pdf`.
@@ -285,8 +254,8 @@ Scores are tied to the paragraph text: editing a paragraph resets its score.
 ```text
 scripts/
   build-espeak-fr.mjs     French-only eSpeak-NG bundle (data trimming + module patch)
-  build-offline.mjs       single-file offline build (dist/discours-hors-ligne.html)
   deploy.sh               build for a sub-path and copy into a folder of apps
+  docs-components.mjs     Vue components page of the API documentation
 src/
   phonetics/
     analyze.ts            analyzeText(): IPA, syllables, liaisons; worker client
@@ -304,7 +273,6 @@ src/
     useRecognition.ts     speech recognition: continuous reading and single words
   stores/
     discours.ts           Pinia store: text, analysis, settings, progress (persisted)
-  offline.ts              download of the single-file offline copy
   pdf.ts                  page capture and PDF writing
   views/
     PracticeView.vue      training screen (route /)
@@ -342,8 +310,12 @@ the whole pipeline. Run `npm run docs` to browse them as HTML pages.
   their browser.
 - **API documentation:** `npm run docs` generates an HTML site in `docs/api/` with
   [TypeDoc](https://typedoc.org) (open `docs/api/index.html`). The configuration is in
-  `typedoc.json`. TypeDoc uses `tsconfig.docs.json`, which only includes the TypeScript modules,
-  since it cannot read `.vue` files. To document a new module, add it to `entryPoints`.
+  `typedoc.json`; every exported function, type and member must be documented (TypeDoc's
+  `notDocumented` check warns otherwise). TypeDoc reads only the TypeScript modules, through
+  `tsconfig.docs.json` and a `.vue` declaration in `env.docs.d.ts`. The Vue components are covered
+  by `scripts/docs-components.mjs`, run first, which writes `docs/components.md` from each
+  component's header comment, props, events and exposed methods; TypeDoc adds it as the _Vue
+  components_ page. To document a new TypeScript module, add it to `entryPoints`.
 
 ## Limitations
 

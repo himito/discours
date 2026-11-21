@@ -110,7 +110,7 @@ export async function pagesToPdf(
   pages: HTMLElement[],
   onProgress?: (done: number) => void,
 ): Promise<Blob> {
-  // Fonts are embedded once for all pages. Without a connection (offline copy) the web fonts
+  // Fonts are embedded once for all pages. Without a connection the web fonts
   // can't be fetched: the system fonts the page already falls back to are used.
   let fontEmbedCSS = ''
   try {

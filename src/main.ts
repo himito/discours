@@ -1,3 +1,8 @@
+/**
+ * Entry point: creates the Vue app with its store (Pinia) and router, and mounts it on `#app`.
+ *
+ * @packageDocumentation
+ */
 import './assets/main.css'
 
 import { createApp } from 'vue'

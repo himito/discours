@@ -22,12 +22,12 @@ import { displayUnits, spokenIndex, spokenText, type Unit } from '@/practice/uni
 import { useDiscoursStore } from '@/stores/discours'
 import { useSpeech } from '@/composables/useSpeech'
 import { recognitionSupported, useReading } from '@/composables/useRecognition'
-import { downloadOfflineCopy, isOfflineCopy } from '@/offline'
 
 const store = useDiscoursStore()
 const speech = useSpeech()
 const reading = useReading()
 
+/** Reading speed aimed at, in words per minute. */
 const WPM_TARGET = 135
 
 onMounted(() => void store.analyze())
@@ -66,6 +66,7 @@ const progress = computed(() => {
   }
 })
 
+/** Section and number of the current paragraph, for the heading. */
 const position = computed(() => {
   for (const s of sections.value) {
     const it = s.items.find((i) => i.index === store.cur)
@@ -74,13 +75,16 @@ const position = computed(() => {
   return { section: 'Discours', n: 1 }
 })
 
+/** Words in the current paragraph. */
 const wordCount = computed(() => para.value?.items.filter((i) => i.kind === 'word').length ?? 0)
 
+/** Seconds as `m:ss`. */
 const fmt = (sec: number) => {
   const s = Math.round(sec)
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
+/** Opens paragraph `i`, stopping voice and recognition. */
 function go(i: number) {
   if (i < 0 || i >= store.paragraphs.length) return
   store.cur = i
@@ -93,6 +97,7 @@ function go(i: number) {
 const drawerOpen = ref(false)
 /** On phones the settings bar is folded behind the ⚙ button. */
 const settingsOpen = ref(false)
+/** Close button of the drawer, focused when it opens. */
 const drawerClose = ref<HTMLButtonElement>()
 
 watch(drawerOpen, (open) => {
@@ -106,6 +111,7 @@ watch(drawerOpen, (open) => {
   }
 })
 
+/** Paragraph list, scrolled to keep the current paragraph visible. */
 const nav = ref<HTMLElement>()
 watch(
   () => store.cur,
@@ -124,22 +130,7 @@ watch(
   },
 )
 
-const downloading = ref(false)
-const downloadError = ref('')
-
-/** Downloads the app as one HTML file, with the current speech and progress in it. */
-async function downloadOffline() {
-  downloading.value = true
-  downloadError.value = ''
-  try {
-    await downloadOfflineCopy(store.snapshot())
-  } catch (e) {
-    downloadError.value = e instanceof Error ? e.message : String(e)
-  } finally {
-    downloading.value = false
-  }
-}
-
+/** Colour class of a score: high, medium or low. */
 function scoreClass(v: number) {
   return v >= 90 ? 's-hi' : v >= 70 ? 's-mid' : 's-lo'
 }
@@ -155,6 +146,7 @@ const units = computed<Unit[]>(() => displayUnits(para.value?.items ?? []))
 /** Text given to the speech synthesizer (see {@link spokenText}). */
 const spoken = computed(() => spokenText(para.value?.items ?? []))
 
+/** Whether the model voice is reading the current paragraph. */
 const listening = computed(() => !!para.value && speech.speakingId.value === para.value.id)
 
 /** Item being spoken by the model voice. */
@@ -163,6 +155,7 @@ const sayIndex = computed(() => {
   return spokenIndex(spoken.value.ranges, speech.charIndex.value)
 })
 
+/** Plays the current paragraph with the model voice, or stops it. */
 function listen() {
   if (!para.value) return
   if (listening.value) return speech.stop()
@@ -176,8 +169,10 @@ function listen() {
 // ---------------------------------------------------------------- reading aloud
 
 const result = shallowRef<{ pct: number; sec: number; wpm: number | null } | null>(null)
+/** Start time of the reading, for its duration. */
 let t0 = 0
 
+/** The transcript aligned with the paragraph, live while reading and kept after. */
 const alignment = computed(() => {
   if (!para.value || (!reading.listening.value && !result.value)) return null
   const heard = reading.finals.value + (reading.listening.value ? ' ' + reading.interim.value : '')
@@ -199,6 +194,7 @@ function wordState(index: number, item: WordItem): '' | 'ok' | 'miss' {
   return item.tech ? '' : 'miss'
 }
 
+/** Starts reading aloud, or ends and scores it. */
 function toggleReading() {
   if (reading.listening.value) return finishReading()
   speech.stop()
@@ -232,6 +228,7 @@ function finishReading() {
   }, 500)
 }
 
+/** Stops the model voice and recognition. */
 function stopAll() {
   if (reading.listening.value) reading.stop()
   speech.stop()
@@ -257,21 +254,28 @@ const hardWords = computed(() =>
       }
     }),
 )
+/** Whether all words to work on are shown, not only the first ones. */
 const showAllHard = ref(false)
+/** Words to work on that are shown. */
 const shownHard = computed(() =>
   showAllHard.value ? hardWords.value : hardWords.value.slice(0, HARD_SHOWN),
 )
+/** Whether "Vider la liste" is waiting for confirmation. */
 const confirmClear = ref(false)
 
+/** Empties the words to work on, after confirmation. */
 function clearHard() {
   store.clearHard()
   confirmClear.value = false
   showAllHard.value = false
 }
 
+/** Word open in the word panel, if any. */
 const practising = shallowRef<{ text: string; item: WordItem | null } | null>(null)
+/** The word panel, to trigger "Répéter" with the space bar. */
 const wordPanel = ref<InstanceType<typeof WordPractice>>()
 
+/** Opens the word panel, stopping voice and recognition. */
 function openWord(text: string, item: WordItem | null) {
   stopAll()
   practising.value = { text, item: item ?? findWord(text) }
@@ -392,35 +396,6 @@ onBeforeUnmount(() => {
             >⤓ Télécharger en PDF</RouterLink
           >
         </div>
-        <button
-          v-if="!isOfflineCopy"
-          type="button"
-          class="offline"
-          :aria-busy="downloading"
-          :disabled="downloading"
-          @click="downloadOffline"
-        >
-          <span class="offline-icon" aria-hidden="true">
-            <span v-if="downloading" class="spinner" />
-            <svg v-else viewBox="0 0 20 20" width="18" height="18">
-              <path
-                d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 14.5V16h12v-1.5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </span>
-          <span class="offline-text">
-            <span class="offline-title">{{
-              downloading ? 'Préparation du fichier…' : 'Télécharger pour hors ligne'
-            }}</span>
-            <span class="offline-sub">Un fichier HTML avec votre texte et vos progrès</span>
-          </span>
-        </button>
-        <p v-if="downloadError" class="offline-error" role="alert">{{ downloadError }}</p>
       </footer>
     </aside>
     <div v-if="drawerOpen" class="backdrop" aria-hidden="true" @click="drawerOpen = false" />
@@ -906,89 +881,6 @@ aside {
   padding: 12px 16px;
   border-top: 1px solid var(--line);
   background: #fafbfc;
-}
-.offline {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--ink);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background-color 0.15s;
-}
-.offline:hover:not(:disabled) {
-  border-color: var(--accent);
-  background: var(--tint);
-}
-.offline:disabled {
-  cursor: progress;
-}
-.offline-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  background: var(--tint);
-  color: var(--accent);
-  transition:
-    background-color 0.15s,
-    color 0.15s;
-}
-.offline:hover:not(:disabled) .offline-icon {
-  background: var(--accent);
-  color: #fff;
-}
-.offline-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  line-height: 1.25;
-}
-.offline-title {
-  font-size: 13.5px;
-  font-weight: 600;
-}
-.offline-sub {
-  font-size: 12px;
-  color: var(--soft);
-  opacity: 0.8;
-}
-.spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  to {
-    transform: rotate(1turn);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 2.4s;
-  }
-}
-.offline-error {
-  margin: 0;
-  font-size: 12px;
-  color: var(--bad);
-  text-align: center;
-}
-/* Stacked: the sidebar is too narrow for both labels on one line. */
-.foot-actions {
-  display: grid;
-  gap: 8px;
 }
 .edit {
   justify-content: center;

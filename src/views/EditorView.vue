@@ -13,10 +13,12 @@ import { SAMPLE_TEXT, useDiscoursStore } from '@/stores/discours'
 const store = useDiscoursStore()
 const router = useRouter()
 
+/** Number of words in the text. */
 const wordCount = computed(
   () => store.text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)?.length ?? 0,
 )
 
+/** Analyzes the text and opens the training screen. */
 function start() {
   void store.analyze()
   void router.push({ name: 'entrainement' })

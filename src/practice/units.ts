@@ -11,9 +11,11 @@ import type { Item, WordItem } from '@/phonetics/analyze'
 /** A word with the punctuation around it, or a reading mark. */
 export type Unit =
   | {
+      /** A word. */
       kind: 'word'
       /** Index of the word in the paragraph's items. */
       index: number
+      /** The analyzed word. */
       item: WordItem
       /** Opening punctuation before the word (« “ ( [). */
       pre: string
@@ -21,11 +23,13 @@ export type Unit =
       post: string
     }
   | {
+      /** A reading mark. */
       kind: 'mark'
       /** `/`, `//`, or `→` for `[→]`. */
       text: string
     }
 
+/** Opening punctuation, attached to the following word. */
 const OPENING = /^[«“([]$/
 
 /**
@@ -55,6 +59,24 @@ export function displayUnits(items: Item[]): Unit[] {
   return out
 }
 
+/** Where a word is in the text given to the speech synthesizer. */
+export interface WordRange {
+  /** Offset of its first character. */
+  a: number
+  /** Offset just after it (and its following space). */
+  b: number
+  /** Index of the word in the paragraph's items. */
+  index: number
+}
+
+/** Result of {@link spokenText}. */
+export interface SpokenText {
+  /** The text to speak. */
+  text: string
+  /** Each word's position in `text`, in order. */
+  ranges: WordRange[]
+}
+
 /**
  * Text given to the speech synthesizer for a paragraph, and the character range of each word in
  * it.
@@ -62,12 +84,9 @@ export function displayUnits(items: Item[]): Unit[] {
  * @remarks `/` is read as a comma and `//` as an ellipsis (a longer pause). `[→]` is silent. The
  * ranges map boundary events (`charIndex`) back to items, to highlight the spoken word.
  */
-export function spokenText(items: Item[]): {
-  text: string
-  ranges: { a: number; b: number; index: number }[]
-} {
+export function spokenText(items: Item[]): SpokenText {
   let text = ''
-  const ranges: { a: number; b: number; index: number }[] = []
+  const ranges: WordRange[] = []
   items.forEach((item, index) => {
     if (item.kind === 'word') {
       ranges.push({ a: text.length, b: text.length + item.text.length + 1, index })
@@ -82,10 +101,7 @@ export function spokenText(items: Item[]): {
 }
 
 /** Item index being spoken at character `charIndex` of {@link spokenText}, or -1. */
-export function spokenIndex(
-  ranges: { a: number; b: number; index: number }[],
-  charIndex: number,
-): number {
+export function spokenIndex(ranges: WordRange[], charIndex: number): number {
   if (charIndex < 0) return -1
   return ranges.find((r) => charIndex >= r.a && charIndex < r.b)?.index ?? -1
 }

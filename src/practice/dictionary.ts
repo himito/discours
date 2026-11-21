@@ -17,6 +17,7 @@
 
 /** A meaning of the word. */
 export interface Sense {
+  /** The definition, with its labels: "(Informatique) Programme…". */
   text: string
   /** First example sentence, if any. */
   example?: string
@@ -26,6 +27,7 @@ export interface Sense {
 export interface Entry {
   /** Part of speech, as titled on the page: "Nom commun", "Verbe", "Adjectif"… */
   pos: string
+  /** Meanings, in the page's order. */
   senses: Sense[]
 }
 
@@ -37,21 +39,27 @@ export interface Definition {
   formOf?: string
   /** Set when the definitions are those of the base word, fetched from its own page. */
   lemma?: string
+  /** Definitions grouped by part of speech. */
   entries: Entry[]
   /** The page on the Wiktionnaire. */
   url: string
 }
 
+/** MediaWiki API of the French Wiktionary. */
 const API = 'https://fr.wiktionary.org/w/api.php'
+/** Base URL of its pages. */
 const PAGE = 'https://fr.wiktionary.org/wiki/'
 /** Sections under "Français" that are not parts of speech. */
 const NOT_POS =
   /^(étymologie|prononciation|voir aussi|références|anagrammes|traductions|homophones|paronymes|variantes|synonymes|antonymes|dérivés|apparentés|hyperonymes|hyponymes|vocabulaire|notes|attestations)/i
+/** Parts of speech shown at most. */
 const MAX_ENTRIES = 3
+/** Meanings shown at most per part of speech. */
 const MAX_SENSES = 4
 /** Examples longer than this are shortened. */
 const MAX_EXAMPLE = 160
 
+/** Look-ups of the session, by lower-cased word. */
 const cache = new Map<string, Promise<Definition | null>>()
 
 /** Link to the Wiktionnaire page of `title`. */
@@ -180,6 +188,7 @@ function dropForms(entries: Entry[], formSenses: Set<Sense>): Entry[] {
 const trim = (entries: Entry[]) =>
   entries.slice(0, MAX_ENTRIES).map((e) => ({ ...e, senses: e.senses.slice(0, MAX_SENSES) }))
 
+/** Tries each candidate title, and follows inflected forms to their base word. */
 async function find(word: string, signal?: AbortSignal): Promise<Definition | null> {
   for (const title of candidates(word)) {
     const page = await fetchPage(title, signal)

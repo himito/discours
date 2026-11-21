@@ -15,9 +15,13 @@ export type DocBlock =
   | { kind: 'para'; paragraph: AnalyzedParagraph; n: number }
 
 defineProps<{
+  /** The block to show. */
   block: DocBlock
+  /** Whether to show the IPA under each word. */
   ipa: boolean
+  /** Whether to show liaisons and enchaînements (and their legend). */
   links: boolean
+  /** Whether to show the reading marks (and their legend). */
   marks: boolean
   /** Reading speed shown in the header, in words per minute. */
   wpm: number

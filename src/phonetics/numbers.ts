@@ -30,6 +30,7 @@ const UNITS = [
   'dix-huit',
   'dix-neuf',
 ]
+/** Tens from 20 to 60 (70–99 are built on 60 and 80). */
 const TENS = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante']
 
 /** 0–99 in words. */
@@ -108,6 +109,7 @@ export function ordinal(n: number): string {
   return `${words}ième`
 }
 
+/** Values of the Roman numeral letters. */
 const ROMAN: Record<string, number> = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 }
 
 /**

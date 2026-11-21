@@ -47,3 +47,4 @@ docs/api/
 
 # Local deployment settings (scripts/deploy.sh)
 .deploy.local
+docs/components.md

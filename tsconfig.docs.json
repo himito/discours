@@ -1,15 +1,18 @@
 {
   // Used by TypeDoc (npm run docs): only the TypeScript modules, since plain tsc can't read .vue files.
+  // The components are documented by scripts/docs-components.mjs.
   "extends": "./tsconfig.app.json",
   "include": [
     "env.d.ts",
+    "src/main.ts",
+    "src/router/*.ts",
     "src/phonetics/**/*.ts",
     "src/practice/**/*.ts",
     "src/composables/**/*.ts",
     "src/stores/**/*.ts",
-    "src/offline.ts",
     "src/pdf.ts",
-    "src/vendor/*.d.ts"
+    "src/vendor/*.d.ts",
+    "env.docs.d.ts"
   ],
   "compilerOptions": {
     "composite": false,

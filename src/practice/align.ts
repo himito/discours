@@ -31,9 +31,18 @@ export function sameWord(a: string, b: string): boolean {
 }
 
 /** Result of {@link align}. */
+/** How much of a word was heard. */
+export interface WordHearing {
+  /** Parts of the word that were heard (see `WordItem.match`). */
+  heard: number
+  /** Parts of the word: 1, or 2 and more for an elision (*l'équipe*). */
+  total: number
+}
+
+/** Result of {@link align}. */
 export interface Alignment {
-  /** For each item index: how many of its parts were heard, out of how many. */
-  perItem: Map<number, { heard: number; total: number }>
+  /** For each word's item index: how many of its parts were heard, out of how many. */
+  perItem: Map<number, WordHearing>
   /** Index of the last item that was heard (words after it are not judged yet). */
   lastHit: number
 }

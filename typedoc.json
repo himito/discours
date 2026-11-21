@@ -2,6 +2,8 @@
   "$schema": "https://typedoc.org/schema.json",
   "name": "Discours",
   "entryPoints": [
+    "src/main.ts",
+    "src/router/index.ts",
     "src/phonetics/analyze.ts",
     "src/phonetics/normalize.ts",
     "src/phonetics/numbers.ts",
@@ -14,8 +16,8 @@
     "src/composables/useSpeech.ts",
     "src/composables/useRecognition.ts",
     "src/stores/discours.ts",
-    "src/offline.ts",
-    "src/pdf.ts"
+    "src/pdf.ts",
+    "src/vendor/espeak-ng-fr.d.ts"
   ],
   "tsconfig": "tsconfig.docs.json",
   "out": "docs/api",
@@ -27,9 +29,14 @@
   ],
   "validation": {
     "notExported": false,
-    "invalidLink": true
+    "invalidLink": true,
+    "notDocumented": true
   },
   "ignoredHighlightLanguages": [
     "mermaid"
-  ]
+  ],
+  "projectDocuments": [
+    "docs/components.md"
+  ],
+  "treatWarningsAsErrors": false
 }

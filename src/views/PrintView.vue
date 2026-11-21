@@ -25,17 +25,23 @@ const store = useDiscoursStore()
 const route = useRoute()
 onMounted(() => void store.analyze())
 
+/** Reading speed used for the durations, in words per minute. */
 const WPM = 135
 
 // ---------------------------------------------------------------- options
 
 const layout = ref<'cards' | 'document'>(route.query.modele === 'document' ? 'document' : 'cards')
+/** Text size of the templates. */
 const size = ref<'normal' | 'large'>('normal')
 /** Section to print (index), or `-1` for the whole speech. */
 const scope = ref(Math.max(-1, Number(route.query.partie ?? 0) - 1))
+/** Whether the IPA is included. */
 const showIpa = ref(store.showIpa)
+/** Whether liaisons are included. */
 const showLinks = ref(store.showLinks)
+/** Whether the reading marks are included. */
 const showMarks = ref(true)
+/** Whether cards list the section's words to work on. */
 const showHard = ref(true)
 
 // ---------------------------------------------------------------- content
@@ -50,6 +56,7 @@ interface PrintSection {
   hard: { text: string; ipa: string }[]
 }
 
+/** The speech by section, with word counts and words to work on. */
 const allSections = computed<PrintSection[]>(() => {
   const out: PrintSection[] = []
   for (const p of store.paragraphs) {
@@ -74,6 +81,7 @@ const allSections = computed<PrintSection[]>(() => {
   return out
 })
 
+/** Sections included in the PDF. */
 const sections = computed(() =>
   scope.value < 0 ? allSections.value : allSections.value.slice(scope.value, scope.value + 1),
 )
@@ -82,6 +90,7 @@ watch(allSections, (all) => {
   if (scope.value >= all.length) scope.value = -1
 })
 
+/** Words included. */
 const totalWords = computed(() => sections.value.reduce((n, s) => n + s.words, 0))
 
 /** Reading time at {@link WPM}: "40 s", "2 min", "2 min 30". */
@@ -93,6 +102,7 @@ function duration(words: number): string {
   return s ? `${m} min ${String(s).padStart(2, '0')}` : `${m} min`
 }
 
+/** Title of a section, or "Discours" for text before any title. */
 const sectionLabel = (s: PrintSection) => s.title || 'Discours'
 
 // ---------------------------------------------------------------- cards: measuring and filling
@@ -104,8 +114,11 @@ interface Card {
   parts: number
 }
 
+/** The cards, filled by {@link paginate}. */
 const cards = shallowRef<Card[]>([])
+/** Hidden box holding every paragraph at card size, to measure them. */
 const measureBox = ref<HTMLElement>()
+/** Body of an empty hidden card: its height is the room for paragraphs. */
 const probeBody = ref<HTMLElement>()
 
 /**
@@ -160,8 +173,11 @@ const docBlocks = computed<DocBlock[]>(() => [
   ]),
 ])
 
+/** The document's pages, filled by {@link paginateDocument}. */
 const docPages = shallowRef<DocBlock[][]>([])
+/** Hidden box holding every block at page width, to measure them. */
 const docMeasure = ref<HTMLElement>()
+/** Body of an empty hidden page: its height is the room for blocks. */
 const docProbe = ref<HTMLElement>()
 
 /**
@@ -219,6 +235,7 @@ const sheets = computed(() => {
 // ---------------------------------------------------------------- preview scale
 
 const preview = ref<HTMLElement>()
+/** Scale of the preview, to fit the window; the PDF is captured at full size. */
 const zoom = ref(1)
 let observer: ResizeObserver | undefined
 
@@ -237,6 +254,7 @@ onBeforeUnmount(() => observer?.disconnect())
 const pages = ref<HTMLElement>()
 /** Pages captured so far while making the PDF, or `null`. */
 const exporting = ref<{ done: number; total: number } | null>(null)
+/** Message shown when the PDF could not be made. */
 const exportError = ref('')
 
 /** File name: `discours.pdf`, `discours-fiches.pdf`, `discours-2-conclusion.pdf`… */

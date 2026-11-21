@@ -2,8 +2,7 @@
  * Application state: the speech, its analysis, settings and practice progress.
  *
  * @remarks Everything except the analysis is saved in `localStorage` (key `discours:v2`) and
- * restored on load. A downloaded offline copy starts from the state embedded in it, then saves
- * under its own key, derived from its text.
+ * restored on load.
  *
  * @packageDocumentation
  */
@@ -11,23 +10,8 @@ import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { analyzeText, wordKey, type AnalyzedParagraph, type WordItem } from '@/phonetics/analyze'
 
-/** State embedded in a downloaded offline copy, if this is one. */
-const seed = (typeof window !== 'undefined' ? window.__DISCOURS_SEED__ : undefined) as
-  Partial<Saved> | undefined
-
-/**
- * Storage key of an offline copy.
- *
- * @remarks Pages opened from disk share one `localStorage`, so each copy gets a key derived from
- * the text it was downloaded with: two copies of different speeches don't overwrite each other.
- */
-function offlineKey(text: string): string {
-  let h = 5381
-  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0
-  return `discours:offline:${(h >>> 0).toString(36)}`
-}
-
-const STORAGE_KEY = seed ? offlineKey(seed.text ?? '') : 'discours:v2'
+/** `localStorage` key of the saved state. */
+const STORAGE_KEY = 'discours:v2'
 
 /** Example speech shown on first use, and by "Charger l'exemple". */
 export const SAMPLE_TEXT = `# Introduction
@@ -45,8 +29,8 @@ interface WordStat {
   n: number
 }
 
-/** What is saved in `localStorage`, and embedded in an offline copy. */
-export interface Saved {
+/** What is saved in `localStorage`. */
+interface Saved {
   text: string
   overrides: Record<string, string>
   showIpa: boolean
@@ -59,10 +43,7 @@ export interface Saved {
   wordStats: Record<string, WordStat>
 }
 
-/**
- * Reads the saved state; missing or corrupt data gives the embedded state of an offline copy, or
- * defaults.
- */
+/** Reads the saved state; missing or corrupt data gives defaults. */
 function load(): Partial<Saved> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -70,7 +51,7 @@ function load(): Partial<Saved> {
   } catch {
     /* storage unavailable or corrupt */
   }
-  return seed ?? {}
+  return {}
 }
 
 /**
@@ -86,12 +67,17 @@ function load(): Partial<Saved> {
 export const useDiscoursStore = defineStore('discours', () => {
   const saved = load()
 
+  /** The speech, in the editor's format. */
   const text = ref(saved.text ?? SAMPLE_TEXT)
   /** User corrections of the IPA, keyed by lower-cased word. */
   const overrides = ref<Record<string, string>>(saved.overrides ?? {})
+  /** Whether the IPA is shown. */
   const showIpa = ref(saved.showIpa ?? true)
+  /** Whether liaisons and enchaînements are shown. */
   const showLinks = ref(saved.showLinks ?? true)
+  /** Speed of the model voice. */
   const rate = ref(saved.rate ?? 0.9)
+  /** Chosen voice, or `''` for the best one. */
   const voiceURI = ref(saved.voiceURI ?? '')
   /** Paragraph being practised. */
   const cur = ref(saved.cur ?? 0)
@@ -99,11 +85,16 @@ export const useDiscoursStore = defineStore('discours', () => {
   const best = ref<Record<string, number>>(saved.best ?? {})
   /** Words missed while reading, with how many times. */
   const hard = ref<Record<string, number>>(saved.hard ?? {})
+  /** Single-word practice results, by word key. */
   const wordStats = ref<Record<string, WordStat>>(saved.wordStats ?? {})
 
+  /** The analyzed speech. */
   const paragraphs = ref<AnalyzedParagraph[]>([])
+  /** Text of the last finished analysis, to skip analyzing it again. */
   const analyzedText = ref<string | null>(null)
+  /** State of the analysis. */
   const status = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  /** Error message of a failed analysis. */
   const error = ref('')
 
   /**
@@ -221,25 +212,43 @@ export const useDiscoursStore = defineStore('discours', () => {
   )
 
   return {
+    /** The speech, in the editor's format (see `parseText`). */
     text,
+    /** User corrections of the IPA, keyed by word key. */
     overrides,
+    /** Whether the IPA is shown under the words. */
     showIpa,
+    /** Whether liaisons and enchaînements are shown. */
     showLinks,
+    /** Speed of the model voice, 0.6 to 1.1. */
     rate,
+    /** Chosen voice (`voiceURI`), or `''` for the best one. */
     voiceURI,
+    /** Index of the paragraph being practised. */
     cur,
+    /** Best reading score per paragraph id, in %. */
     best,
+    /** Words missed while reading, by word key, with how many times. */
     hard,
+    /** Single-word practice results, by word key. */
     wordStats,
+    /** The analyzed speech: one entry per paragraph. */
     paragraphs,
+    /** State of the analysis. */
     status,
+    /** Error message when `status` is `error`. */
     error,
+    /** Analyzes `text` unless it already has been; sets `status`. */
     analyze,
+    /** IPA to display for a word: the user's correction if any, else the analyzed IPA. */
     ipaOf,
+    /** Saves (or, with `null`, removes) the user's IPA for a word, for all its occurrences. */
     setOverride,
+    /** Records a paragraph reading: keeps the best score and adds the missed words. */
     recordScore,
+    /** Records a single-word attempt; a success lowers the word's count in `hard`. */
     recordWordTry,
+    /** Empties the words to work on. */
     clearHard,
-    snapshot,
   }
 })

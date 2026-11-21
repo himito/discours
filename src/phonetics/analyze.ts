@@ -33,6 +33,7 @@ export type LinkType = 'liaison' | 'enchainement'
 
 /** A word of the speech, with its pronunciation. */
 export interface WordItem {
+  /** Always `'word'`. */
   kind: 'word'
   /** Original text of the word, as written in the speech. */
   text: string
@@ -63,6 +64,7 @@ export interface WordItem {
 
 /** Punctuation (`punct`) or a reading mark written in the speech (`mark`: `/`, `//`, `[→]`). */
 export interface OtherItem {
+  /** Punctuation, or a reading mark (`/`, `//`, `[→]`). */
   kind: 'punct' | 'mark'
   /** Original text of the token. */
   text: string
@@ -97,15 +99,8 @@ type Engine = (req: PhonemizeRequest) => Promise<PhonemizeResponse>
 
 let engine: Promise<Engine> | undefined
 
-/**
- * Starts eSpeak: in a web worker normally, directly in the page in the offline build (Chrome won't
- * start a worker from a page opened from disk, and fails silently).
- */
+/** Starts eSpeak in a web worker. */
 async function createEngine(): Promise<Engine> {
-  if (import.meta.env.MODE === 'offline') {
-    const { handleRequest } = await import('./espeak')
-    return handleRequest
-  }
   const worker = new Worker(new URL('./espeak.worker.ts', import.meta.url), { type: 'module' })
   const pending = new Map<number, (r: PhonemizeResponse) => void>()
   worker.onmessage = (e: MessageEvent<PhonemizeResponse>) => {
@@ -119,6 +114,7 @@ async function createEngine(): Promise<Engine> {
     })
 }
 
+/** Id of the next engine request. */
 let nextId = 1
 
 /**
@@ -369,8 +365,11 @@ function hash(text: string): string {
   return (h >>> 0).toString(36)
 }
 
+/** Consonants that can start a syllable together with a following liquid (*pr*, *bl*…). */
 const OBSTRUENTS = new Set(['p', 'b', 't', 'd', 'k', 'ɡ', 'g', 'f', 'v'])
+/** Second consonant of an onset cluster (*pr*, *fl*). */
 const LIQUIDS = new Set(['ʁ', 'l'])
+/** Semi-vowels, which stay with the following vowel (*pi.jɛʁ*). */
 const GLIDES = new Set(['j', 'w', 'ɥ'])
 
 /**

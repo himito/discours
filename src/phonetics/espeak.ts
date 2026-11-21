@@ -2,8 +2,7 @@
  * eSpeak-NG, loaded once and used to phonemize French text.
  *
  * @remarks
- * Runs in the web worker of `espeak.worker.ts` in the normal build, and directly in the page in the
- * offline build: Chrome won't start a worker from a page opened from disk.
+ * Runs in the web worker of `espeak.worker.ts`, off the main thread.
  *
  * Synthesis events are used rather than `text_to_phonemes`: each phoneme event carries the
  * character position of the word that produced it, which is what lets the IPA be aligned word by
@@ -12,7 +11,6 @@
  * @packageDocumentation
  */
 import createModule, { type ESpeakWorker } from '@/vendor/espeak-ng-fr.js'
-import embeddedData from 'virtual:espeak-data'
 
 /**
  * Phonemes of one text, in order.
@@ -31,35 +29,36 @@ export interface PhonemizeRequest {
 }
 
 /** The answer to a {@link PhonemizeRequest}: one trace per text, or the error message. */
-export type PhonemizeResponse =
-  { id: number; results: PhonemeTrace[] } | { id: number; error: string }
+export type PhonemizeResponse = PhonemizeResult | PhonemizeError
+
+/** Successful answer: one phoneme trace per text sent. */
+export interface PhonemizeResult {
+  /** The request's id. */
+  id: number
+  /** One trace per text, in the order of {@link PhonemizeRequest.texts}. */
+  results: PhonemeTrace[]
+}
+
+/** Failed answer, typically when the eSpeak data couldn't be loaded. */
+export interface PhonemizeError {
+  /** The request's id. */
+  id: number
+  /** Error message. */
+  error: string
+}
 
 let engine: Promise<ESpeakWorker> | undefined
-
-/** Decodes base64 into an `ArrayBuffer`. */
-function fromBase64(b64: string): ArrayBuffer {
-  const bin = atob(b64)
-  const bytes = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-  return bytes.buffer
-}
 
 /**
  * Loads eSpeak once and selects French.
  *
- * @remarks The data package is fetched from `public/espeak/`, except in the offline build, where
- * it is embedded in the code.
+ * @remarks The data package is fetched from `public/espeak/`.
  */
 function getEngine(): Promise<ESpeakWorker> {
-  const data = embeddedData
-  engine ??= createModule(
-    data
-      ? { getPreloadedPackage: () => fromBase64(data) }
-      : {
-          locateFile: (path) =>
-            new URL(`${import.meta.env.BASE_URL}espeak/${path}`, self.location.origin).href,
-        },
-  ).then((m) => {
+  engine ??= createModule({
+    locateFile: (path) =>
+      new URL(`${import.meta.env.BASE_URL}espeak/${path}`, self.location.origin).href,
+  }).then((m) => {
     const w = new m.eSpeakNGWorker()
     w.set_voice('fr')
     return w

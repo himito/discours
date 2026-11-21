@@ -10,16 +10,20 @@ import type { Item, WordItem } from '@/phonetics/analyze'
 import { displayUnits } from '@/practice/units'
 import { useDiscoursStore } from '@/stores/discours'
 
+/** Component props. */
 const props = defineProps<{
+  /** The paragraph's items. */
   items: Item[]
   /** Index of the item being spoken, or -1. */
   sayIndex: number
   /** Reading result of a word: `ok`, `miss` or `''` (not judged). */
   state: (index: number, item: WordItem) => '' | 'ok' | 'miss'
 }>()
+/** `word`: a word was clicked or activated with Enter. */
 const emit = defineEmits<{ word: [text: string, item: WordItem] }>()
 
 const store = useDiscoursStore()
+/** The paragraph as words with punctuation, and reading marks. */
 const units = computed(() => displayUnits(props.items))
 </script>
 

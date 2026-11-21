@@ -21,35 +21,46 @@ import { listenOnce, recognitionSupported } from '@/composables/useRecognition'
 import { useSpeech } from '@/composables/useSpeech'
 import { useDiscoursStore } from '@/stores/discours'
 
+/** Component props. */
 const props = defineProps<{
   /** The word as written (punctuation is stripped for display and speech). */
   text: string
   /** The analyzed word, if known: gives its IPA and liaison. */
   item: WordItem | null
 }>()
+/** `close`: the panel is closed (× or Escape). */
 const emit = defineEmits<{ close: [] }>()
 
 const store = useDiscoursStore()
 const speech = useSpeech()
 
+/** The word without surrounding punctuation, as shown and spoken. */
 const word = computed(() => props.text.replace(/[«»"“”().,;:!?]/g, ''))
+/** Key of the word in the store (overrides, statistics). */
 const key = computed(() => wordKey(word.value))
+/** IPA shown: the user's correction, the analyzed IPA, or `''`. */
 const ipa = computed(() =>
   props.item ? store.ipaOf(props.item) : (store.overrides[key.value] ?? ''),
 )
+/** Whether the user corrected this word's IPA. */
 const corrected = computed(() => store.overrides[key.value] !== undefined)
 
+/** Instruction or result shown under the buttons. */
 const message = ref(
   recognitionSupported
     ? 'Écoute, puis clique sur « Répéter » et prononce le mot.'
     : 'Répétition indisponible dans ce navigateur (utilise Chrome ou Edge).',
 )
+/** Result of the last attempt, for its colour. */
 const verdict = ref<'' | 'good' | 'bad'>('')
+/** Whether the microphone is listening for the word. */
 const recording = ref(false)
 let cancel: (() => void) | null = null
 
+/** Practice results of this word, if any. */
 const stat = computed(() => store.wordStats[key.value])
 
+/** Speaks the word at `rate`. */
 function say(rate: number) {
   void speech.speak(`word:${key.value}`, word.value, { rate, voiceURI: store.voiceURI })
 }
@@ -92,6 +103,7 @@ async function repeat() {
   }
 }
 
+/** Stops listening without grading. */
 function stopRepeat() {
   recording.value = false
   cancel?.()
@@ -102,15 +114,20 @@ defineExpose({ repeat })
 // ---------------------------------------------------------------- IPA correction
 
 const editing = ref(false)
+/** IPA being edited. */
 const draft = ref('')
+/** The IPA field, to focus it and insert symbols at the cursor. */
 const input = ref<HTMLInputElement>()
+/** IPA symbols of French that are hard to type, offered as buttons. */
 const SYMBOLS = ['ə', 'ɛ', 'ɔ', 'ø', 'œ', 'ɑ̃', 'ɔ̃', 'ɛ̃', 'œ̃', 'ʁ', 'ʃ', 'ʒ', 'ɲ', 'ɥ']
 
+/** Opens the IPA editor with the current IPA. */
 function edit() {
   draft.value = ipa.value
   editing.value = true
   void nextTick(() => input.value?.focus())
 }
+/** Inserts an IPA symbol at the cursor. */
 function insert(sym: string) {
   const el = input.value
   if (!el) return
@@ -122,10 +139,12 @@ function insert(sym: string) {
     el.setSelectionRange(a + sym.length, a + sym.length)
   })
 }
+/** Saves the edited IPA; the analyzed IPA unchanged removes the correction. */
 function save() {
   store.setOverride(key.value, props.item && draft.value === props.item.ipa ? null : draft.value)
   editing.value = false
 }
+/** Removes the user's correction. */
 function reset() {
   store.setOverride(key.value, null)
   editing.value = false
@@ -134,11 +153,14 @@ function reset() {
 // ---------------------------------------------------------------- definition
 
 const definition = ref<Definition | null>(null)
+/** State of the definition look-up; `skip` for acronyms and numbers. */
 const defState = ref<'loading' | 'done' | 'none' | 'skip' | 'error'>('loading')
+/** Cancels the look-up when the panel closes. */
 const lookupAbort = new AbortController()
 /** Where to search by hand when there is no definition. */
 const searchUrl = computed(() => pageUrl(candidates(word.value)[0] ?? word.value))
 
+/** Looks the word up in the Wiktionnaire, unless it is a technical term. */
 async function loadDefinition() {
   // Acronyms, numbers and other technical terms are not dictionary words.
   if (props.item?.tech || !/\p{L}{2}/u.test(word.value)) {
@@ -153,10 +175,12 @@ async function loadDefinition() {
   }
 }
 
+/** Stops listening and closes the panel. */
 function close() {
   stopRepeat()
   emit('close')
 }
+/** Escape closes the panel. */
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape') close()
 }

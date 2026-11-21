@@ -28,11 +28,14 @@ const speech = useSpeech()
 const reading = useReading()
 onMounted(() => void store.analyze())
 
+/** Reading speed aimed at, in words per minute. */
 const WPM_TARGET = 135
 /** Silence between two paragraphs, and before a new section, in ms. */
 const GAP = { paragraph: 450, section: 1100 }
 
+/** The analyzed paragraphs. */
 const paragraphs = computed(() => store.paragraphs)
+/** Number of words in a paragraph. */
 const wordsOf = (p: AnalyzedParagraph) => p.items.filter((i) => i.kind === 'word').length
 
 /** Paragraphs grouped by section, numbered within their section as in the sidebar. */
@@ -46,8 +49,10 @@ const sections = computed(() => {
   return out
 })
 
+/** Words in the whole speech. */
 const totalWords = computed(() => paragraphs.value.reduce((n, p) => n + wordsOf(p), 0))
 
+/** Seconds as `m:ss`. */
 const fmt = (sec: number) =>
   `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`
 
@@ -60,10 +65,12 @@ watch(paragraphs, (ps) => {
 // ---------------------------------------------------------------- following along
 
 const paraEls = new Map<number, HTMLElement>()
+/** Template ref callback: remembers each paragraph's element, to scroll to it. */
 function setParaEl(index: number, el: unknown) {
   if (el instanceof HTMLElement) paraEls.set(index, el)
   else paraEls.delete(index)
 }
+/** Whether the user asked for less motion: scrolling is then instant. */
 const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 /** Keeps paragraph `index` in view while listening or reading. */
@@ -78,8 +85,10 @@ function follow(index: number) {
 const playing = ref(false)
 /** Paragraph being spoken, or -1. */
 const playingIndex = ref(-1)
+/** Increments on each start and stop, so an old listening loop stops itself. */
 let playRun = 0
 
+/** Resolves after `ms` milliseconds. */
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 /** Reads the paragraphs one after the other from {@link startAt}, until the end or a stop. */
@@ -107,6 +116,7 @@ async function playAll() {
   }
 }
 
+/** Stops listening to the speech. */
 function stopPlaying() {
   playRun++
   playing.value = false
@@ -133,10 +143,14 @@ interface Span {
   offset: Map<number, number>
 }
 
+/** Words of the current or last reading, from its starting paragraph on. */
 const span = shallowRef<Span | null>(null)
+/** Final transcript of the last reading, kept to show its colours. */
 const finished = ref('')
+/** Start time of the reading, for its duration. */
 let t0 = 0
 
+/** Concatenates the paragraphs from `from` on, keeping each item's origin. */
 function buildSpan(from: number): Span {
   const items: Item[] = []
   const owner: { p: number; i: number }[] = []
@@ -151,6 +165,7 @@ function buildSpan(from: number): Span {
   return { from, items, owner, offset }
 }
 
+/** The transcript aligned with the words read, live while reading. */
 const alignment = computed(() => {
   const s = span.value
   if (!s) return null
@@ -171,6 +186,7 @@ watch(readingIndex, (i) => {
   if (reading.listening.value && i >= 0) follow(i)
 })
 
+/** Colour function for the words of paragraph `pIndex`, for {@link SpeechText}. */
 function stateOf(pIndex: number) {
   return (index: number, item: WordItem): '' | 'ok' | 'miss' => {
     const s = span.value
@@ -195,8 +211,10 @@ interface Summary {
   wpm: number | null
   missed: number
 }
+/** Result of the last reading. */
 const summary = shallowRef<Summary | null>(null)
 
+/** Starts reading from {@link startAt}. */
 function startReading() {
   stopPlaying()
   summary.value = null
@@ -207,6 +225,7 @@ function startReading() {
   reading.start()
 }
 
+/** Starts reading, or ends and scores it. */
 function toggleReading() {
   if (reading.listening.value) finishReading()
   else startReading()
@@ -266,6 +285,7 @@ function stopReading() {
   if (reading.listening.value) reading.stop()
 }
 
+/** Removes the colours and the summary of the last reading. */
 function clearResults() {
   span.value = null
   summary.value = null
@@ -285,6 +305,7 @@ function label(index: number): string {
 
 const practising = shallowRef<{ text: string; item: WordItem } | null>(null)
 
+/** Opens the word panel, stopping voice and recognition. */
 function openWord(text: string, item: WordItem) {
   stopPlaying()
   stopReading()
