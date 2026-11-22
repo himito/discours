@@ -151,7 +151,8 @@ The text is saved as you type.
 ## Architecture
 
 The code follows **ports and adapters** (hexagonal architecture): the logic doesn't know about
-Vue, the DOM or the browser's APIs, and talks to the outside world through interfaces.
+Vue, the DOM or the browser's APIs, and talks to the outside world through interfaces, the
+**ports**. Each module of the core declares the ports it needs, next to the logic that uses them.
 
 ```mermaid
 flowchart LR
@@ -159,43 +160,44 @@ flowchart LR
     V[views, components] --> C[composables, store]
   end
   subgraph Core["src/core — plain TypeScript"]
-    D[model, rules, services]
-    P{{ports}}
-    D --> P
+    D[modules: logic + their ports]
   end
   subgraph Adapters["src/adapters — browser"]
-    E[EspeakPhonemizer]
-    WS[WebSpeechSynthesizer / Recognizer]
-    WK[WiktionaryDictionary]
-    LS[LocalStorageStateStorage]
-    H[HtmlToImageRasterizer]
+    A[espeak, webspeech, wiktionary, storage, pdf]
   end
   C --> D
-  C -. usePorts .-> P
-  E & WS & WK & LS & H -. implement .-> P
+  A -. implement ports .-> D
   M[src/main.ts<br/>composition root] --> Adapters
   M --> UI
 ```
 
-- **`src/core/`**: the domain, as pure functions and plain data. The model (`model.ts`), text
-  parsing (`text/`), phonetics (`phonetics/`), reading aloud (`reading/`), the speech's structure
-  (`speech/`), progress rules (`progress/`) and the PDF (`print/`). It defines the **ports** it
-  needs (`core/ports/`): `Phonemizer`, `SpeechSynthesizer`, `SpeechRecognizer`, `Dictionary`,
-  `StateStorage` and `PageRasterizer`.
-- **`src/adapters/`**: one implementation of each port for the browser: eSpeak-NG in a web
-  worker, the Web Speech API, the Wiktionnaire, `localStorage`, html-to-image.
+| Module (`src/core/…`) | Logic                                               | Ports                                   | Adapter (`src/adapters/…`)                                        |
+| --------------------- | --------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------- |
+| `phonetics/`          | `createAnalyzer`: IPA, syllables, liaisons; lexicon | `Phonemizer`                            | `espeak/EspeakPhonemizer` (eSpeak-NG in a web worker)             |
+| `reading/`            | alignment, reading sessions, scores, playback       | `SpeechSynthesizer`, `SpeechRecognizer` | `webspeech/WebSpeechSynthesizer`, `webspeech/WebSpeechRecognizer` |
+| `dictionary/`         | —                                                   | `Dictionary`                            | `wiktionary/WiktionaryDictionary`                                 |
+| `state/`              | saved state and settings                            | `StateStorage`                          | `storage/LocalStorageStateStorage`                                |
+| `print/`              | pagination, file names, PDF writer and export       | `PageRasterizer`                        | `pdf/HtmlToImageRasterizer` (html-to-image)                       |
+| `text/`               | tokenizer, normalization, numbers, word keys        | —                                       | —                                                                 |
+| `speech/`             | sections, display units, spoken text                | —                                       | —                                                                 |
+| `progress/`           | best scores, words to work on, IPA corrections      | —                                       | —                                                                 |
+
+- **`src/core/`**: the domain, as pure functions and plain data. `model.ts` is the data model
+  (`AnalyzedParagraph`, `WordItem`…); `ports.ts` lists every port the app needs (`Ports`).
+- **`src/adapters/`**: the browser implementation of each port. `index.ts` assembles them
+  (`createBrowserPorts`).
 - **`src/ui/`**: Vue only. Screens and components display state and forward user actions. The
   composables (`useModelVoice`, `useReadingSession`) and the Pinia store turn core functions and
   ports into reactive state. The UI gets the ports with `usePorts()`, never an adapter.
-- **`src/main.ts`**: the composition root, the only place that chooses the adapters.
+- **`src/main.ts`**: the composition root, the only place that sees both adapters and UI.
 
-Dependencies point inward: `core` imports nothing from `ui` or `adapters`, and `ui` imports no
-adapter. ESLint enforces it (`no-restricted-imports` in `eslint.config.ts`).
+Dependencies point inward: `core` imports nothing from `ui` or `adapters`, adapters don't import
+the UI, and `ui` imports no adapter. ESLint enforces it (`no-restricted-imports` in
+`eslint.config.ts`).
 
 **Extending.** To use another engine (a cloud text-to-speech voice, another phonemizer, another
-dictionary, server-side storage), write a class implementing the port and pass it in
-`createBrowserPorts()` (`src/adapters/index.ts`). Nothing else changes. Tests use the same
-mechanism with fakes.
+dictionary, server-side storage), write a class implementing the port in `src/adapters/` and use
+it in `createBrowserPorts()`. Nothing else changes. Tests use the same mechanism with fakes.
 
 ## How it works
 
@@ -317,17 +319,18 @@ scripts/
   docs-components.mjs     Vue components page of the API documentation
 src/
   main.ts                 composition root: adapters → ports → Vue app
-  core/                   plain TypeScript: no Vue, no DOM
+  core/                   plain TypeScript: no Vue, no DOM; each module with its ports
     model.ts              AnalyzedParagraph, WordItem…
-    state.ts              saved state and settings
-    ports/                Phonemizer, SpeechSynthesizer, SpeechRecognizer, Dictionary,
-                          StateStorage, PageRasterizer, Ports
+    ports.ts              Ports: every port the app needs
     text/                 tokenizer and normalization, numbers in words, word keys
-    phonetics/            createAnalyzer (IPA, liaisons), syllables, lexicon
-    reading/              alignment, reading sessions and scores, paragraph playback
+    phonetics/            createAnalyzer (IPA, liaisons), syllables, lexicon; Phonemizer
+    reading/              alignment, reading sessions and scores, playback;
+                          SpeechSynthesizer, SpeechRecognizer
+    dictionary/           Dictionary
+    state/                saved state and settings; StateStorage
+    print/                pagination, file names, PDF writer and export; PageRasterizer
     speech/               sections, display units, spoken text
     progress/             best scores, words to work on, IPA corrections
-    print/                pagination, file names, PDF writer and export
   adapters/               the ports, implemented for the browser
     index.ts              createBrowserPorts()
     espeak/               EspeakPhonemizer, web worker, engine, generated vendor module
@@ -337,7 +340,7 @@ src/
     pdf/                  HtmlToImageRasterizer
   ui/                     Vue
     ports.ts              providePorts / usePorts
-    stores/discours.ts    Pinia store: reactive state over core rules and ports
+    stores/discours.ts    Pinia store: reactive state over the modules and ports
     composables/          useModelVoice, useVoices, useReadingSession
     views/                PracticeView (/), DocumentView (/discours), EditorView (/texte),
                           PrintView (/pdf)
@@ -351,7 +354,7 @@ tests/
 ```
 
 Every module, exported function and type is documented with
-[TSDoc](https://tsdoc.org) comments. Start with `src/core/ports/index.ts` for the ports and
+[TSDoc](https://tsdoc.org) comments. Start with `src/core/ports.ts` for the ports and
 `src/core/phonetics/analyze.ts` for the pipeline. Run `npm run docs` to browse them as HTML pages.
 
 ## Development

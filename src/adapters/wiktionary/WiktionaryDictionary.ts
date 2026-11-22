@@ -16,7 +16,7 @@
  * @packageDocumentation
  */
 
-import type { Definition, Dictionary, Entry, Sense } from '@/core/ports'
+import type { Definition, Dictionary, Entry, Sense } from '@/core/dictionary/Dictionary'
 
 /** MediaWiki API of the French Wiktionary. */
 const API = 'https://fr.wiktionary.org/w/api.php'

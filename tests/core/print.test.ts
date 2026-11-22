@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PageRasterizer } from '@/core/ports'
+import type { PageRasterizer } from '@/core/print/PageRasterizer'
 import { exportPdf } from '@/core/print/exportPdf'
 import { pdfFileName, slug } from '@/core/print/fileName'
 import { fillPages, pairs } from '@/core/print/pagination'

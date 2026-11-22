@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createAnalyzer } from '@/core/phonetics/analyze'
-import type { PhonemeTrace, Phonemizer } from '@/core/ports'
+import type { PhonemeTrace, Phonemizer } from '@/core/phonetics/Phonemizer'
 import type { WordItem } from '@/core/model'
 
 /** How each word sounds alone. */

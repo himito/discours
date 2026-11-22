@@ -10,7 +10,7 @@
  *
  * @packageDocumentation
  */
-import type { PhonemeTrace } from '@/core/ports'
+import type { PhonemeTrace } from '@/core/phonetics/Phonemizer'
 import createModule, { type ESpeakWorker } from './vendor/espeak-ng-fr.js'
 
 /** A phonemization request. */

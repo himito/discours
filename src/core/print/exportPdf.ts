@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-import type { PageRasterizer } from '../ports/PageRasterizer'
+import type { PageRasterizer } from './PageRasterizer'
 import { jpegsToPdf } from './pdfWriter'
 
 /**

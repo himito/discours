@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { SpeakOptions, SpeechSynthesizer, Voice } from '@/core/ports'
+import type { SpeakOptions, SpeechSynthesizer, Voice } from '@/core/reading/SpeechSynthesizer'
 import { playParagraphs } from '@/core/reading/playback'
 import { paragraph } from './fixtures'
 

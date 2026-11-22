@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import type { AnalyzedParagraph } from '../model'
-import type { SpeechSynthesizer } from '../ports/SpeechSynthesizer'
+import type { SpeechSynthesizer } from './SpeechSynthesizer'
 import { spokenIndex, spokenText } from '../speech/units'
 
 /** Silences between paragraphs, in milliseconds. */

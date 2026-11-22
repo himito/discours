@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { computed, onScopeDispose, ref, shallowRef, type Ref } from 'vue'
-import type { RecognitionError, RecognitionSession } from '@/core/ports'
+import type { RecognitionError, RecognitionSession } from '@/core/reading/SpeechRecognizer'
 import {
   followReading,
   readingTarget,

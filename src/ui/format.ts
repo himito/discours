@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-import type { RecognitionError } from '@/core/ports'
+import type { RecognitionError } from '@/core/reading/SpeechRecognizer'
 import type { Section } from '@/core/speech/sections'
 
 /** Seconds as a clock, `m:ss`. */

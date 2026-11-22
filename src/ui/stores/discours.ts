@@ -29,7 +29,7 @@ import {
   type WordStats,
 } from '@/core/progress/progress'
 import type { ReadingScore } from '@/core/reading/session'
-import { DEFAULT_SETTINGS, type SavedState } from '@/core/state'
+import { DEFAULT_SETTINGS, type SavedState } from '@/core/state/state'
 import { usePorts } from '@/ui/ports'
 import { SAMPLE_TEXT } from '@/ui/sampleText'
 

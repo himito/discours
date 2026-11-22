@@ -1,10 +1,10 @@
 /**
- * The browser adapters, assembled.
+ * The browser adapters, assembled: one implementation of each port.
  *
  * @packageDocumentation
  */
 import type { Ports } from '@/core/ports'
-import type { SavedState } from '@/core/state'
+import type { SavedState } from '@/core/state/state'
 import { EspeakPhonemizer } from './espeak/EspeakPhonemizer'
 import { HtmlToImageRasterizer } from './pdf/HtmlToImageRasterizer'
 import { LocalStorageStateStorage } from './storage/LocalStorageStateStorage'

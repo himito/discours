@@ -2,8 +2,8 @@
  * Composition root: creates the browser adapters, then the Vue app with its store (Pinia), router
  * and ports, and mounts it on `#app`.
  *
- * @remarks The only place that chooses adapters. To run the app on other engines, pass other
- * implementations of the ports to `providePorts`.
+ * @remarks The only place that chooses adapters (`createBrowserPorts`). To run the app on other
+ * engines, pass other implementations of the ports to `providePorts`.
  *
  * @packageDocumentation
  */

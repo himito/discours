@@ -19,7 +19,7 @@
  * @packageDocumentation
  */
 import type { AnalyzedParagraph, Item, WordItem } from '../model'
-import type { PhonemeTrace, Phonemizer } from '../ports/Phonemizer'
+import type { PhonemeTrace, Phonemizer } from './Phonemizer'
 import { normalizeSentence, normalizeWord, parseText, type Sentence } from '../text/normalize'
 import { isTechnicalTerm, matchKeys, textId, wordKey } from '../text/words'
 import { lexiconIpa } from './lexicon'

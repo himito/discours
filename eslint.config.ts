@@ -27,8 +27,9 @@ export default defineConfigWithVueTs(
 
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
-  // Architecture (ports & adapters): dependencies point inward.
-  // core ← adapters, core ← ui; only the composition root (src/main.ts) sees both.
+  // Architecture (ports & adapters): dependencies point inward. Each module of src/core declares
+  // the ports it needs; src/adapters implements them; the UI uses ports only. Only the
+  // composition root (src/main.ts) sees the adapters.
   {
     name: 'app/architecture/core',
     files: ['src/core/**/*.ts'],
@@ -81,7 +82,7 @@ export default defineConfigWithVueTs(
         {
           patterns: [
             {
-              group: ['@/adapters/*', '@/adapters'],
+              group: ['@/adapters', '@/adapters/*'],
               message:
                 'The UI uses ports (usePorts), never adapters: wire adapters in src/main.ts.',
             },

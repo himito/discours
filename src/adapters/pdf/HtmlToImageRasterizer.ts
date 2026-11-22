@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 import { getFontEmbedCSS, toJpeg } from 'html-to-image'
-import type { PageRasterizer } from '@/core/ports'
+import type { PageRasterizer } from '@/core/print/PageRasterizer'
 
 /** A4 in CSS pixels (96 per inch): 210 × 297 mm. */
 const PAGE_PX = { width: 794, height: 1123 }
