@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { SpeakOptions, SpeechSynthesizer, Voice } from '../ports'
-import { playParagraphs } from '../reading/playback'
+import type { SpeakOptions, SpeechSynthesizer, Voice } from '@/core/ports'
+import { playParagraphs } from '@/core/reading/playback'
 import { paragraph } from './fixtures'
 
 /** A synthesizer that "speaks" instantly, reporting a boundary for each word. */

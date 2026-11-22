@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { PageRasterizer } from '../ports'
-import { exportPdf } from '../print/exportPdf'
-import { pdfFileName, slug } from '../print/fileName'
-import { fillPages, pairs } from '../print/pagination'
-import { jpegSize, jpegsToPdf } from '../print/pdfWriter'
+import type { PageRasterizer } from '@/core/ports'
+import { exportPdf } from '@/core/print/exportPdf'
+import { pdfFileName, slug } from '@/core/print/fileName'
+import { fillPages, pairs } from '@/core/print/pagination'
+import { jpegSize, jpegsToPdf } from '@/core/print/pdfWriter'
 
 /** The smallest byte sequence `jpegSize` can read: SOI, then a SOF0 segment. */
 function fakeJpeg(width: number, height: number): Uint8Array {

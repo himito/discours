@@ -1,6 +1,6 @@
 /** Helpers to build analyzed paragraphs by hand in tests. */
-import type { AnalyzedParagraph, Item, WordItem } from '../model'
-import { isTechnicalTerm, matchKeys, textId, wordKey } from '../text/words'
+import type { AnalyzedParagraph, Item, WordItem } from '@/core/model'
+import { isTechnicalTerm, matchKeys, textId, wordKey } from '@/core/text/words'
 
 /** A word item, with keys computed like the analyzer does. */
 export function word(text: string, extra: Partial<WordItem> = {}): WordItem {

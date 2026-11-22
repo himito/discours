@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { groupBySection, locate, readingSeconds, totalWords } from '../speech/sections'
-import { displayUnits, spokenIndex, spokenText } from '../speech/units'
+import { groupBySection, locate, readingSeconds, totalWords } from '@/core/speech/sections'
+import { displayUnits, spokenIndex, spokenText } from '@/core/speech/units'
 import { paragraph } from './fixtures'
 
 describe('sections', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { createAnalyzer } from '../phonetics/analyze'
-import type { PhonemeTrace, Phonemizer } from '../ports'
-import type { WordItem } from '../model'
+import { createAnalyzer } from '@/core/phonetics/analyze'
+import type { PhonemeTrace, Phonemizer } from '@/core/ports'
+import type { WordItem } from '@/core/model'
 
 /** How each word sounds alone. */
 const ALONE: Record<string, string[]> = {

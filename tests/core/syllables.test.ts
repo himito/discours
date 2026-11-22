@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanPhoneme, fixGlides, fixPalatal, syllabify } from '../phonetics/syllables'
+import { cleanPhoneme, fixGlides, fixPalatal, syllabify } from '@/core/phonetics/syllables'
 
 describe('syllabify', () => {
   it.each([
