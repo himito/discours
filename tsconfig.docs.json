@@ -10,7 +10,7 @@
     "src/adapters/**/*.ts",
     "src/ui/**/*.ts"
   ],
-  "exclude": ["src/**/__tests__/*"],
+  "exclude": [],
   "compilerOptions": {
     "composite": false,
     "noEmit": true,

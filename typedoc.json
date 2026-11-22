@@ -28,7 +28,6 @@
   ],
   "treatWarningsAsErrors": false,
   "exclude": [
-    "**/__tests__/**",
     "**/vendor/*.js"
   ]
 }
