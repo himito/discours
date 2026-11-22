@@ -22,6 +22,7 @@ _Entrainement prononciation_, generalized to any speech.
 - [Project structure](#project-structure)
 - [Development](#development)
 - [Limitations](#limitations)
+- [Contributing](#contributing)
 - [Licence](#licence)
 
 ## Features
@@ -397,8 +398,11 @@ Every module, exported function and type is documented with
   macOS's Thomas or Amélie sound best.
 - **Fonts** (IBM Plex, Charis SIL) load from Google Fonts. Offline, system fonts are used.
 
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, where code goes,
+and the checks a change must pass.
+
 ## Licence
 
-Discours is free software, released under the GNU General Public License, version 3 or (at your
-option) any later version. It bundles eSpeak-NG, which is under the same licence. See
-[LICENSE](LICENSE) for the full terms.
+The licence can be found in the file [LICENSE](LICENSE).
