@@ -71,7 +71,7 @@ The microphone is needed for _Lire à voix haute_ and _Répéter_. Allow it when
 | `npm run preview` | Serve the production build                                      |
 | `npm test`        | Unit tests of the core (Vitest)                                 |
 | `npm run lint`    | oxlint then ESLint, with fixes                                  |
-| `npm run format`  | Prettier on `src/`                                              |
+| `npm run format`  | Prettier on `src/` and `tests/`                                 |
 | `npm run espeak`  | Rebuild the French eSpeak-NG bundle (run by `dev` and `build`)  |
 | `npm run docs`    | Generate the API documentation in `docs/api/` (TypeDoc)         |
 | `npm run deploy`  | Build for a sub-path and copy into a folder of apps (see below) |
@@ -328,7 +328,6 @@ src/
     speech/               sections, display units, spoken text
     progress/             best scores, words to work on, IPA corrections
     print/                pagination, file names, PDF writer and export
-    __tests__/            unit tests (Vitest), with fake adapters
   adapters/               the ports, implemented for the browser
     index.ts              createBrowserPorts()
     espeak/               EspeakPhonemizer, web worker, engine, generated vendor module
@@ -347,6 +346,8 @@ src/
     router/, assets/      routes, CSS, logo
     format.ts             durations, labels, messages (French)
 public/espeak/            generated French data package, git-ignored
+tests/
+  core/                   unit tests of the core (Vitest), with fake adapters
 ```
 
 Every module, exported function and type is documented with
@@ -361,7 +362,7 @@ Every module, exported function and type is documented with
 - **Architecture rules:** see [Architecture](#architecture). Keep logic in `src/core` (pure
   functions, tested), browser APIs in `src/adapters`, and Vue in `src/ui`.
 - **Tests:** `npm test` runs the unit tests of the core with [Vitest](https://vitest.dev), in
-  Node, with fake adapters for the ports (see `src/core/__tests__/`).
+  Node, with fake adapters for the ports (see `tests/core/`).
 - **Generated files:** `src/adapters/espeak/vendor/espeak-ng-fr.js` and `public/espeak/` are generated and ignored
   by git and the linters. Run `npm run espeak` if you upgrade `@echogarden/espeak-ng-emscripten`.
   The script fails loudly if the upstream module layout changes.
