@@ -4,16 +4,13 @@
   "extends": "./tsconfig.app.json",
   "include": [
     "env.d.ts",
+    "env.docs.d.ts",
     "src/main.ts",
-    "src/router/*.ts",
-    "src/phonetics/**/*.ts",
-    "src/practice/**/*.ts",
-    "src/composables/**/*.ts",
-    "src/stores/**/*.ts",
-    "src/pdf.ts",
-    "src/vendor/*.d.ts",
-    "env.docs.d.ts"
+    "src/core/**/*.ts",
+    "src/adapters/**/*.ts",
+    "src/ui/**/*.ts"
   ],
+  "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "composite": false,
     "noEmit": true,

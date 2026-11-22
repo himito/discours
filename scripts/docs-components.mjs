@@ -8,16 +8,16 @@
  * - the TSDoc comment at the top of `<script setup>`;
  * - its props, with their types and comments (`defineProps<{ … }>()`);
  * - its events (`defineEmits`) and exposed methods (`defineExpose`);
- * - for screens, the route that shows them (from `src/router/index.ts`).
+ * - for screens, the route that shows them (from `src/ui/router/index.ts`).
  */
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const OUT = 'docs/components.md'
 const GROUPS = [
-  { dir: 'src/views', title: 'Screens' },
-  { dir: 'src', title: 'Root', only: ['App.vue'] },
-  { dir: 'src/components', title: 'Components' },
+  { dir: 'src/ui/views', title: 'Screens' },
+  { dir: 'src/ui', title: 'Root', only: ['App.vue'] },
+  { dir: 'src/ui/components', title: 'Components' },
 ]
 
 /** Text of a `/** … *\/` comment, without its stars. */
@@ -36,10 +36,10 @@ const tidy = (doc) =>
 
 /** Path → route of each screen, read from the router. */
 function routes() {
-  const src = readFileSync('src/router/index.ts', 'utf8')
+  const src = readFileSync('src/ui/router/index.ts', 'utf8')
   const out = {}
   for (const m of src.matchAll(
-    /path:\s*'([^']+)'[^}]*?(?:component:\s*(\w+)|import\('@\/views\/(\w+)\.vue'\))/g,
+    /path:\s*'([^']+)'[^}]*?(?:component:\s*(\w+)|import\('@\/ui\/views\/(\w+)\.vue'\))/g,
   ))
     out[m[2] ?? m[3]] = m[1]
   return out

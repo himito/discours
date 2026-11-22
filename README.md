@@ -17,6 +17,7 @@ _Entrainement prononciation_, generalized to any speech.
 - [Deployment](#deployment)
 - [PDF](#pdf)
 - [Writing a speech](#writing-a-speech)
+- [Architecture](#architecture)
 - [How it works](#how-it-works)
 - [Project structure](#project-structure)
 - [Development](#development)
@@ -68,6 +69,7 @@ The microphone is needed for _Lire à voix haute_ and _Répéter_. Allow it when
 | `npm run dev`     | Development server with hot reload                              |
 | `npm run build`   | Type-check and production build in `dist/`                      |
 | `npm run preview` | Serve the production build                                      |
+| `npm test`        | Unit tests of the core (Vitest)                                 |
 | `npm run lint`    | oxlint then ESLint, with fixes                                  |
 | `npm run format`  | Prettier on `src/`                                              |
 | `npm run espeak`  | Rebuild the French eSpeak-NG bundle (run by `dev` and `build`)  |
@@ -115,9 +117,10 @@ pages of the PDF.
   across pages, and a section title never ends a page.
 
 Both templates are laid out as exact A4 pages: `PrintView.vue` measures every paragraph and title
-at final size in a hidden box, then fills the cards or pages. `src/pdf.ts` captures each page as
-a 240 dpi JPEG with [html-to-image](https://github.com/bubkoo/html-to-image) and writes the PDF
-itself (one image per page, about 450 KB per page). The PDF looks exactly like the preview, but
+at final size in a hidden box, then `fillPages` (`src/core/print/pagination.ts`) fills the cards
+or pages. Each page is captured as a 240 dpi JPEG by the `PageRasterizer` port
+([html-to-image](https://github.com/bubkoo/html-to-image) in the browser), and
+`src/core/print/pdfWriter.ts` writes the PDF itself (one image per page, about 450 KB per page). The PDF looks exactly like the preview, but
 its text can't be selected or searched.
 
 The web fonts are embedded in the capture, which is why the Google Fonts stylesheet is loaded with
@@ -145,6 +148,55 @@ Depuis mon arrivée au laboratoire, / mes travaux portent sur…
 
 The text is saved as you type.
 
+## Architecture
+
+The code follows **ports and adapters** (hexagonal architecture): the logic doesn't know about
+Vue, the DOM or the browser's APIs, and talks to the outside world through interfaces.
+
+```mermaid
+flowchart LR
+  subgraph UI["src/ui — Vue"]
+    V[views, components] --> C[composables, store]
+  end
+  subgraph Core["src/core — plain TypeScript"]
+    D[model, rules, services]
+    P{{ports}}
+    D --> P
+  end
+  subgraph Adapters["src/adapters — browser"]
+    E[EspeakPhonemizer]
+    WS[WebSpeechSynthesizer / Recognizer]
+    WK[WiktionaryDictionary]
+    LS[LocalStorageStateStorage]
+    H[HtmlToImageRasterizer]
+  end
+  C --> D
+  C -. usePorts .-> P
+  E & WS & WK & LS & H -. implement .-> P
+  M[src/main.ts<br/>composition root] --> Adapters
+  M --> UI
+```
+
+- **`src/core/`**: the domain, as pure functions and plain data. The model (`model.ts`), text
+  parsing (`text/`), phonetics (`phonetics/`), reading aloud (`reading/`), the speech's structure
+  (`speech/`), progress rules (`progress/`) and the PDF (`print/`). It defines the **ports** it
+  needs (`core/ports/`): `Phonemizer`, `SpeechSynthesizer`, `SpeechRecognizer`, `Dictionary`,
+  `StateStorage` and `PageRasterizer`.
+- **`src/adapters/`**: one implementation of each port for the browser: eSpeak-NG in a web
+  worker, the Web Speech API, the Wiktionnaire, `localStorage`, html-to-image.
+- **`src/ui/`**: Vue only. Screens and components display state and forward user actions. The
+  composables (`useModelVoice`, `useReadingSession`) and the Pinia store turn core functions and
+  ports into reactive state. The UI gets the ports with `usePorts()`, never an adapter.
+- **`src/main.ts`**: the composition root, the only place that chooses the adapters.
+
+Dependencies point inward: `core` imports nothing from `ui` or `adapters`, and `ui` imports no
+adapter. ESLint enforces it (`no-restricted-imports` in `eslint.config.ts`).
+
+**Extending.** To use another engine (a cloud text-to-speech voice, another phonemizer, another
+dictionary, server-side storage), write a class implementing the port and pass it in
+`createBrowserPorts()` (`src/adapters/index.ts`). Nothing else changes. Tests use the same
+mechanism with fakes.
+
 ## How it works
 
 ### Overview
@@ -153,28 +205,28 @@ The text is saved as you type.
 flowchart LR
   T[Speech text] --> P[parseText<br/>paragraphs, sentences, tokens]
   P --> N[normalizeSentence<br/>M. → Monsieur, XXIe → vingt-et-unième…]
-  N --> W[eSpeak-NG<br/>web worker]
-  W -->|phonemes + word positions| A[analyzeText]
+  N --> W[Phonemizer port<br/>eSpeak-NG web worker]
+  W -->|phonemes + word positions| A[createAnalyzer]
   L[Reference lexicon] --> A
   A --> V[PracticeView]
-  V -->|one utterance per paragraph| S[speechSynthesis]
-  V -->|read aloud| R[SpeechRecognition]
-  R --> AL[align: LCS] --> V
+  V -->|playParagraphs| S[SpeechSynthesizer port]
+  V -->|read aloud| R[SpeechRecognizer port]
+  R --> AL[reading session: align, score] --> V
 ```
 
 ### IPA transcription
 
-1. **Parsing** (`src/phonetics/normalize.ts`). The text is split into paragraphs, sentences and
+1. **Parsing** (`src/core/text/normalize.ts`). The text is split into paragraphs, sentences and
    tokens (words, punctuation, reading marks), keeping the original spacing.
 2. **Normalization.** eSpeak-NG reads some written forms badly, so they are rewritten first:
    _M._ → Monsieur, _XXIe_ / _21e_ → vingt-et-unième, _Louis XIV_ → Louis 14, _PIB_ → pé-i-bé,
    _1 200 000_ → 1200000, _qu'aujourd'hui_. A character map keeps track of which original word
    each character comes from.
-3. **Phonemization** (`src/phonetics/espeak.ts`). eSpeak-NG runs in a web worker
-   (`espeak.worker.ts`). Its synthesis events give every phoneme along with the position of the
+3. **Phonemization** (the `Phonemizer` port, implemented by `src/adapters/espeak/`). eSpeak-NG
+   runs in a web worker. Its synthesis events give every phoneme along with the position of the
    word that produced it, which is how the IPA is aligned word by word. The audio is thrown away.
-4. **Choosing the IPA** (`src/phonetics/analyze.ts`). If the word is in the hand-checked lexicon
-   (`src/phonetics/lexicon.ts`, about 600 hand-checked words split into syllables), its entry is
+4. **Choosing the IPA** (`src/core/phonetics/analyze.ts`). If the word is in the hand-checked lexicon
+   (`src/core/phonetics/lexicon.ts`, about 600 hand-checked words split into syllables), its entry is
    used. Otherwise eSpeak's phonemes are cleaned up (stress marks removed, ɥ restored in _suis_,
    _nuit_) and split into syllables.
 5. **Liaisons.** Every distinct word is also phonemized on its own. A final consonant that only
@@ -187,31 +239,34 @@ speech is analyzed in under a second.
 
 ### Model voice
 
-`src/composables/useSpeech.ts` uses the browser's speech synthesis, with the same voice choice as
-the prototype: fr-FR voices, _Google français_ first, then Thomas, Amélie, Denise or Henri. A
+`src/adapters/webspeech/WebSpeechSynthesizer.ts` uses the browser's speech synthesis, with the
+same voice choice as the prototype: fr-FR voices, _Google français_ first, then Thomas, Amélie, Denise or Henri. A
 different voice can be picked in the toolbar.
 
 The whole paragraph is spoken as **one utterance**, which keeps intonation natural across
-sentences. `/` becomes a comma and `//` an ellipsis, which the voice reads as pauses. Word boundary
-events drive the highlighting.
+sentences. `/` becomes a comma and `//` an ellipsis, which the voice reads as pauses, unless
+punctuation already marks a pause there (`spokenText`, `src/core/speech/units.ts`). Word boundary
+events drive the highlighting. `playParagraphs` (`src/core/reading/playback.ts`) plays one or
+more paragraphs in a row, for both the training and the whole speech screens.
 
 ### Whole speech
 
-`src/views/DocumentView.vue` (route `/discours`) shows all paragraphs, grouped by section.
+`src/ui/views/DocumentView.vue` (route `/discours`) shows all paragraphs, grouped by section.
 Clicking a paragraph number makes it the starting point.
 
 - **Écouter** speaks the paragraphs one after the other, one utterance each (the same text as on
-  the training screen, `spokenText` in `src/practice/units.ts`), with a short silence between
+  the training screen), with a short silence between
   paragraphs and a longer one before a new section. The current paragraph is scrolled into view.
 - **Lire à voix haute** runs one continuous recognition session and aligns the transcript with
-  all the words from the starting paragraph on, so you can stop wherever you like. On
+  all the words from the starting paragraph on (a `ReadingTarget` spanning several paragraphs), so you can stop wherever you like. On
   _Terminer la lecture_, every paragraph up to the last word heard gets its own score, exactly as
   if it had been read alone, and its missed words go to the words to work on. A summary gives the
   overall score, time and words per minute. Space starts and ends the reading.
 
 ### Definitions
 
-`src/practice/dictionary.ts` fetches the word's page from the French Wiktionary through the
+The `Dictionary` port is implemented by `src/adapters/wiktionary/WiktionaryDictionary.ts`, which
+fetches the word's page from the French Wiktionary through the
 MediaWiki API (`action=parse`, which allows browser requests with `origin=*`) and reads, in the
 French section, the numbered definitions of each part of speech with their first example. It
 tries the word as written, without an elided article or pronoun (_l'application_ →
@@ -225,9 +280,8 @@ looked up. Without a connection, the panel says the definition is unavailable.
 
 ### Reading score
 
-`src/composables/useRecognition.ts` runs continuous French speech recognition.
-`src/practice/align.ts` aligns the transcript with the paragraph's words by longest common
-subsequence, with a tolerant comparison. This is the prototype's algorithm:
+The `SpeechRecognizer` port (Web Speech API in the browser) gives the transcript.
+`src/core/reading/align.ts` aligns it with the words read by longest common subsequence, with a tolerant comparison. This is the prototype's algorithm:
 
 - Words are compared without accents or punctuation.
 - Elisions are matched part by part: _l'équipe_ → `l` + `equipe`.
@@ -237,9 +291,14 @@ A word is _understood_ when all its parts were heard. Technical terms (acronyms 
 alphanumeric terms) are shown in italics and **not counted** in the score: recognizers transcribe
 them unpredictably. Only the best score of each paragraph is kept.
 
+The training screen and the whole speech screen share the same rules
+(`src/core/reading/session.ts`): `readingTarget` covers one paragraph or several, `followReading`
+colours the words live, and `scoreReading` scores each paragraph as if read alone.
+
 ### Stored data
 
-Everything is in the browser's `localStorage`, under the key `discours:v2`:
+Everything goes through the `StateStorage` port: the browser's `localStorage`, under the key
+`discours:v2`:
 
 - the speech text;
 - settings: IPA and liaison display, rate, voice;
@@ -257,55 +316,59 @@ scripts/
   deploy.sh               build for a sub-path and copy into a folder of apps
   docs-components.mjs     Vue components page of the API documentation
 src/
-  phonetics/
-    analyze.ts            analyzeText(): IPA, syllables, liaisons; worker client
-    normalize.ts          tokenizer, sentence splitter, eSpeak-friendly rewriting
-    numbers.ts            French numbers and ordinals in words, Roman numerals
-    lexicon.ts            hand-checked IPA lexicon from the prototype
-    espeak.ts             eSpeak-NG loading and phonemization
-    espeak.worker.ts      web worker running it (normal build)
-  practice/
-    align.ts              transcript ↔ text alignment, word comparison
-    units.ts              words with their punctuation, as displayed and printed
-    dictionary.ts         French definitions from the Wiktionnaire
-  composables/
-    useSpeech.ts          model voice (speechSynthesis), voice choice, highlighting
-    useRecognition.ts     speech recognition: continuous reading and single words
-  stores/
-    discours.ts           Pinia store: text, analysis, settings, progress (persisted)
-  pdf.ts                  page capture and PDF writing
-  views/
-    PracticeView.vue      training screen (route /)
-    DocumentView.vue      whole speech: continuous listening and reading (route /discours)
-    PrintView.vue         PDF templates: cards and document (route /pdf)
-    EditorView.vue        speech editor (route /texte)
-  components/
-    WordPractice.vue      single-word practice panel
-    SpeechText.vue        a paragraph's words with IPA, liaisons and reading colours
-    PrintParagraph.vue    a paragraph in the PDF: words, IPA, liaisons, marks
-    PrintDocBlock.vue     a block of the document template: header, title or paragraph
-  vendor/
-    espeak-ng-fr.d.ts     types of the generated eSpeak module
-    espeak-ng-fr.js       generated, git-ignored
+  main.ts                 composition root: adapters → ports → Vue app
+  core/                   plain TypeScript: no Vue, no DOM
+    model.ts              AnalyzedParagraph, WordItem…
+    state.ts              saved state and settings
+    ports/                Phonemizer, SpeechSynthesizer, SpeechRecognizer, Dictionary,
+                          StateStorage, PageRasterizer, Ports
+    text/                 tokenizer and normalization, numbers in words, word keys
+    phonetics/            createAnalyzer (IPA, liaisons), syllables, lexicon
+    reading/              alignment, reading sessions and scores, paragraph playback
+    speech/               sections, display units, spoken text
+    progress/             best scores, words to work on, IPA corrections
+    print/                pagination, file names, PDF writer and export
+    __tests__/            unit tests (Vitest), with fake adapters
+  adapters/               the ports, implemented for the browser
+    index.ts              createBrowserPorts()
+    espeak/               EspeakPhonemizer, web worker, engine, generated vendor module
+    webspeech/            WebSpeechSynthesizer, WebSpeechRecognizer
+    wiktionary/           WiktionaryDictionary
+    storage/              LocalStorageStateStorage
+    pdf/                  HtmlToImageRasterizer
+  ui/                     Vue
+    ports.ts              providePorts / usePorts
+    stores/discours.ts    Pinia store: reactive state over core rules and ports
+    composables/          useModelVoice, useVoices, useReadingSession
+    views/                PracticeView (/), DocumentView (/discours), EditorView (/texte),
+                          PrintView (/pdf)
+    components/           SpeechText, WordPractice, IpaEditor, WordDefinition,
+                          HardWordsPanel, PrintParagraph, PrintDocBlock
+    router/, assets/      routes, CSS, logo
+    format.ts             durations, labels, messages (French)
 public/espeak/            generated French data package, git-ignored
 ```
 
 Every module, exported function and type is documented with
-[TSDoc](https://tsdoc.org) comments. Start with `src/phonetics/analyze.ts`: its header describes
-the whole pipeline. Run `npm run docs` to browse them as HTML pages.
+[TSDoc](https://tsdoc.org) comments. Start with `src/core/ports/index.ts` for the ports and
+`src/core/phonetics/analyze.ts` for the pipeline. Run `npm run docs` to browse them as HTML pages.
 
 ## Development
 
 - **Stack:** Vue 3 (`<script setup>`), TypeScript, Pinia, Vue Router, Vite.
 - **Code style:** Prettier (no semicolons, single quotes, 100 columns), checked by oxlint and
   ESLint.
-- **Generated files:** `src/vendor/espeak-ng-fr.js` and `public/espeak/` are generated and ignored
+- **Architecture rules:** see [Architecture](#architecture). Keep logic in `src/core` (pure
+  functions, tested), browser APIs in `src/adapters`, and Vue in `src/ui`.
+- **Tests:** `npm test` runs the unit tests of the core with [Vitest](https://vitest.dev), in
+  Node, with fake adapters for the ports (see `src/core/__tests__/`).
+- **Generated files:** `src/adapters/espeak/vendor/espeak-ng-fr.js` and `public/espeak/` are generated and ignored
   by git and the linters. Run `npm run espeak` if you upgrade `@echogarden/espeak-ng-emscripten`.
   The script fails loudly if the upstream module layout changes.
-- **Testing the analyzer in Node:** `analyzeText(text, run)` accepts its phonemizer as a second
-  argument. Load `src/vendor/espeak-ng-fr.js` in Node, with `locateFile` pointing to
-  `public/espeak/`, and pass a function that calls `synthesize` and collects the phoneme events.
-- **Adding IPA by hand:** add entries to `LEXICON` in `src/phonetics/lexicon.ts`, split into
+- **Running the real analyzer in Node:** `createAnalyzer` takes any `Phonemizer`. Load
+  `src/adapters/espeak/vendor/espeak-ng-fr.js` in Node, with `locateFile` pointing to
+  `public/espeak/`, and wrap its `synthesize` phoneme events in a `Phonemizer`.
+- **Adding IPA by hand:** add entries to `LEXICON` in `src/core/phonetics/lexicon.ts`, split into
   syllables with dots. Users can also correct words in the app, but those corrections stay in
   their browser.
 - **API documentation:** `npm run docs` generates an HTML site in `docs/api/` with
@@ -315,7 +378,7 @@ the whole pipeline. Run `npm run docs` to browse them as HTML pages.
   `tsconfig.docs.json` and a `.vue` declaration in `env.docs.d.ts`. The Vue components are covered
   by `scripts/docs-components.mjs`, run first, which writes `docs/components.md` from each
   component's header comment, props, events and exposed methods; TypeDoc adds it as the _Vue
-  components_ page. To document a new TypeScript module, add it to `entryPoints`.
+  components_ page. New TypeScript modules under `src/` are picked up automatically.
 
 ## Limitations
 

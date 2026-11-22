@@ -3,21 +3,9 @@
   "name": "Discours",
   "entryPoints": [
     "src/main.ts",
-    "src/router/index.ts",
-    "src/phonetics/analyze.ts",
-    "src/phonetics/normalize.ts",
-    "src/phonetics/numbers.ts",
-    "src/phonetics/lexicon.ts",
-    "src/phonetics/espeak.ts",
-    "src/phonetics/espeak.worker.ts",
-    "src/practice/align.ts",
-    "src/practice/units.ts",
-    "src/practice/dictionary.ts",
-    "src/composables/useSpeech.ts",
-    "src/composables/useRecognition.ts",
-    "src/stores/discours.ts",
-    "src/pdf.ts",
-    "src/vendor/espeak-ng-fr.d.ts"
+    "src/core/**/*.ts",
+    "src/adapters/**/*.ts",
+    "src/ui/**/*.ts"
   ],
   "tsconfig": "tsconfig.docs.json",
   "out": "docs/api",
@@ -38,5 +26,9 @@
   "projectDocuments": [
     "docs/components.md"
   ],
-  "treatWarningsAsErrors": false
+  "treatWarningsAsErrors": false,
+  "exclude": [
+    "**/__tests__/**",
+    "**/vendor/*.js"
+  ]
 }

@@ -1,19 +1,28 @@
 /**
- * Entry point: creates the Vue app with its store (Pinia) and router, and mounts it on `#app`.
+ * Composition root: creates the browser adapters, then the Vue app with its store (Pinia), router
+ * and ports, and mounts it on `#app`.
+ *
+ * @remarks The only place that chooses adapters. To run the app on other engines, pass other
+ * implementations of the ports to `providePorts`.
  *
  * @packageDocumentation
  */
-import './assets/main.css'
+import './ui/assets/main.css'
 
-import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { createApp } from 'vue'
 
-import App from './App.vue'
-import router from './router'
+import { createBrowserPorts } from './adapters'
+import App from './ui/App.vue'
+import { providePorts } from './ui/ports'
+import router from './ui/router'
+
+const ports = createBrowserPorts()
+// Loads the phonetic engine in the background, so the first analysis doesn't wait for it.
+ports.phonemizer.warmUp()
 
 const app = createApp(App)
-
+providePorts(app, ports)
 app.use(createPinia())
 app.use(router)
-
 app.mount('#app')

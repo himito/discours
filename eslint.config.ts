@@ -15,12 +15,81 @@ export default defineConfigWithVueTs(
     files: ['**/*.{vue,ts,mts,tsx}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', 'src/vendor/*.js']),
+  globalIgnores([
+    '**/dist/**',
+    '**/dist-ssr/**',
+    '**/coverage/**',
+    'src/adapters/espeak/vendor/*.js',
+  ]),
 
   ...pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
 
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
+
+  // Architecture (ports & adapters): dependencies point inward.
+  // core ← adapters, core ← ui; only the composition root (src/main.ts) sees both.
+  {
+    name: 'app/architecture/core',
+    files: ['src/core/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@/ui',
+                '@/ui/*',
+                '@/adapters',
+                '@/adapters/*',
+                'vue',
+                'pinia',
+                'vue-router',
+                'html-to-image',
+              ],
+              message: 'The core is plain TypeScript: no UI, no adapters, no frameworks.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'app/architecture/adapters',
+    files: ['src/adapters/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/ui', '@/ui/*', 'vue', 'pinia', 'vue-router'],
+              message: 'Adapters implement core ports; they must not depend on the UI.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'app/architecture/ui',
+    files: ['src/ui/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/adapters/*', '@/adapters'],
+              message:
+                'The UI uses ports (usePorts), never adapters: wire adapters in src/main.ts.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 
   skipFormatting,
 )
