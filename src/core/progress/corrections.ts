@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 import type { WordItem } from '#core/model'
+import type { Nullable } from '#core/types'
 
 /** Corrected IPA by word key; a correction applies to every occurrence of the word. */
 export type Corrections = Record<string, string>
@@ -21,7 +22,7 @@ export const ipaOf = (word: WordItem, corrections: Corrections): string =>
 export function withCorrection(
   corrections: Corrections,
   key: string,
-  ipa: string | null,
+  ipa: Nullable<string>,
   analyzed?: string,
 ): Corrections {
   const next = { ...corrections }

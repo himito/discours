@@ -17,6 +17,7 @@ import {
 } from '#core/reading/session'
 import { usePorts } from '#ui/ports'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { Nullable } from '#core/types'
 
 /** Time left to the recognizer to deliver its last result after stopping, in ms. */
 const LAST_RESULT_DELAY = 500
@@ -28,7 +29,7 @@ export interface ReadingResult {
   /** Duration of the reading, in seconds. */
   seconds: number
   /** Reading speed, or `null` if too short to say. */
-  wpm: number | null
+  wpm: Nullable<number>
 }
 
 /** A reading aloud for a component, from {@link useReadingSession}. */
@@ -38,19 +39,19 @@ export interface ReadingSession {
   /** Whether the microphone is listening. */
   readonly listening: Ref<boolean>
   /** Why recognition stopped, if it failed. */
-  readonly error: Ref<RecognitionError | null>
+  readonly error: Ref<Nullable<RecognitionError>>
   /** What was recognized for sure so far. */
   readonly transcript: Ref<string>
   /** What is still being recognized. */
   readonly interim: Ref<string>
   /** The last finished reading. */
-  readonly result: Ref<ReadingResult | null>
+  readonly result: Ref<Nullable<ReadingResult>>
   /** Paragraph the reader has reached, or -1 when not reading. */
   readonly reached: Ref<number>
   /** Starts reading paragraphs `from` to `to` (default: to the end of the speech). */
   start(from: number, to?: number): void
   /** Ends the reading, then scores and records it. */
-  finish(): Promise<ReadingResult | null>
+  finish(): Promise<Nullable<ReadingResult>>
   /** Stops listening without scoring. */
   stop(): void
   /** Forgets the last reading: its colours and its result. */
@@ -74,10 +75,10 @@ export function useReadingSession(scope: 'all' | 'reached'): ReadingSession {
   const listening = ref(false)
   const finals = ref('')
   const interim = ref('')
-  const error = ref<RecognitionError | null>(null)
-  const target = shallowRef<ReadingTarget | null>(null)
-  const result = shallowRef<ReadingResult | null>(null)
-  let session: RecognitionSession | null = null
+  const error = ref<Nullable<RecognitionError>>(null)
+  const target = shallowRef<Nullable<ReadingTarget>>(null)
+  const result = shallowRef<Nullable<ReadingResult>>(null)
+  let session: Nullable<RecognitionSession> = null
   let startedAt = 0
 
   /** The transcript aligned with the target, while reading and after. */
@@ -112,7 +113,7 @@ export function useReadingSession(scope: 'all' | 'reached'): ReadingSession {
   }
 
   /** Ends the reading, then scores and records it. */
-  async function finish(): Promise<ReadingResult | null> {
+  async function finish(): Promise<Nullable<ReadingResult>> {
     const seconds = (performance.now() - startedAt) / 1000
     stop()
     await new Promise((resolve) => setTimeout(resolve, LAST_RESULT_DELAY))

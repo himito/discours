@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 import type { SectionHeading } from '#core/speech/sections'
+import type { Nullable } from '#core/types'
 
 /** A title as a file-name part: lower case, no accents, dashes between words. */
 export function slug(title: string): string {
@@ -21,7 +22,7 @@ export function slug(title: string): string {
  * @param section - The single section exported, or `null` for the whole speech.
  * @param cards - Whether the cards template is used.
  */
-export function pdfFileName(section: SectionHeading | null, cards: boolean): string {
+export function pdfFileName(section: Nullable<SectionHeading>, cards: boolean): string {
   const parts = ['discours']
   if (section) parts.push(String(section.number), slug(section.title))
   if (cards) parts.push('fiches')

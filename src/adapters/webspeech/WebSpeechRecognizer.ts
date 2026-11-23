@@ -12,6 +12,7 @@ import {
   type TranscriptListener,
   type UtteranceRecognition,
 } from '#core/reading/SpeechRecognizer'
+import type { Nullable } from '#core/types'
 
 /* Minimal typings: the Web Speech recognition API is not in TypeScript's DOM lib. */
 interface RecognitionAlternative {
@@ -31,9 +32,9 @@ interface Recognition {
   continuous: boolean
   interimResults: boolean
   maxAlternatives: number
-  onresult: ((e: RecognitionEvent) => void) | null
-  onerror: ((e: { error: string }) => void) | null
-  onend: (() => void) | null
+  onresult: Nullable<(e: RecognitionEvent) => void>
+  onerror: Nullable<(e: { error: string }) => void>
+  onend: Nullable<() => void>
   start(): void
   stop(): void
   abort(): void

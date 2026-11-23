@@ -8,6 +8,7 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import type { Definition } from '#core/dictionary/Dictionary'
 import { usePorts } from '#ui/ports'
+import type { Nullable } from '#core/types'
 
 /** Component props. */
 const props = defineProps<{
@@ -17,7 +18,7 @@ const props = defineProps<{
 
 const { dictionary } = usePorts()
 /** The definitions found, if any. */
-const definition = shallowRef<Definition | null>(null)
+const definition = shallowRef<Nullable<Definition>>(null)
 /** State of the look-up. */
 const state = ref<'loading' | 'found' | 'none' | 'error'>('loading')
 /** Cancels the look-up when the panel closes. */

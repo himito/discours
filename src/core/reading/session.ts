@@ -15,6 +15,7 @@
  */
 import { isWord, type AnalyzedParagraph, type Item, type WordItem } from '#core/model'
 import { align, type Alignment } from './align'
+import type { Nullable } from '#core/types'
 
 /** The words a reading is checked against: paragraphs `from` to `to`, concatenated. */
 export interface ReadingTarget {
@@ -187,6 +188,6 @@ const percentage = (part: number, total: number) => (total ? Math.round((part / 
  *
  * @returns `null` for readings under 2 seconds, too short to say.
  */
-export function wordsPerMinute(words: number, seconds: number): number | null {
+export function wordsPerMinute(words: number, seconds: number): Nullable<number> {
   return seconds > 2 ? Math.round((words / seconds) * 60) : null
 }

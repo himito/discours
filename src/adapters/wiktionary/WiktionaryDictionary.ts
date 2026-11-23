@@ -17,6 +17,7 @@
  */
 
 import type { Definition, Dictionary, Entry, Sense } from '#core/dictionary/Dictionary'
+import type { Nullable } from '#core/types'
 
 /** MediaWiki API of the French Wiktionary. */
 const API = 'https://fr.wiktionary.org/w/api.php'
@@ -52,7 +53,7 @@ function candidates(word: string): string[] {
 async function fetchPage(
   title: string,
   signal?: AbortSignal,
-): Promise<{ title: string; html: string } | null> {
+): Promise<Nullable<{ title: string; html: string }>> {
   const params = new URLSearchParams({
     action: 'parse',
     page: title,
@@ -84,7 +85,7 @@ function ownText(li: Element): string {
  * If a definition only points to another word ("Pluriel de *recherche*"), returns that word and
  * the description.
  */
-function formOf(li: Element): { lemma: string; label: string } | null {
+function formOf(li: Element): Nullable<{ lemma: string; label: string }> {
   const first = li.firstElementChild
   if (first?.tagName !== 'I' || !/\b(?:de|du|d’)\s*$/.test(first.textContent ?? '')) return null
   const link = first.nextElementSibling
@@ -104,7 +105,7 @@ function parseFrench(html: string): {
   const entries: Entry[] = []
   const forms: { lemma: string; label: string }[] = []
   const formSenses = new Set<Sense>()
-  let pos: string | null = null
+  let pos: Nullable<string> = null
   for (let el = start?.nextElementSibling; el; el = el.nextElementSibling) {
     if (el.matches('.mw-heading2, h2')) break
     const h3 = el.matches('.mw-heading3') ? el.querySelector('h3') : el.matches('h3') ? el : null
@@ -159,7 +160,7 @@ const trim = (entries: Entry[]) =>
   entries.slice(0, MAX_ENTRIES).map((e) => ({ ...e, senses: e.senses.slice(0, MAX_SENSES) }))
 
 /** Tries each candidate title, and follows inflected forms to their base word. */
-async function find(word: string, signal?: AbortSignal): Promise<Definition | null> {
+async function find(word: string, signal?: AbortSignal): Promise<Nullable<Definition>> {
   for (const title of candidates(word)) {
     const page = await fetchPage(title, signal)
     if (!page) continue
@@ -193,9 +194,9 @@ async function find(word: string, signal?: AbortSignal): Promise<Definition | nu
 /** Looks words up in the French Wiktionary. */
 export class WiktionaryDictionary implements Dictionary {
   /** Look-ups of the session, by lower-cased word. */
-  private readonly cache = new Map<string, Promise<Definition | null>>()
+  private readonly cache = new Map<string, Promise<Nullable<Definition>>>()
 
-  lookup(word: string, signal?: AbortSignal): Promise<Definition | null> {
+  lookup(word: string, signal?: AbortSignal): Promise<Nullable<Definition>> {
     const key = word.toLowerCase()
     let hit = this.cache.get(key)
     if (!hit) {

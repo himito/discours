@@ -55,6 +55,7 @@ Some rules of thumb:
   (`src/adapters/index.ts`). The UI gets it with `usePorts()`.
 - **Reactive state for several components?** A composable in `src/ui/composables/`, or the store
   in `src/ui/stores/discours.ts` if it must be saved.
+- **A value that may be absent** is typed `Nullable<T>` (from `#core/types`), not `T | null`.
 - **Text the user sees** is in French; code, comments and documentation are in English.
 
 ## Making a change

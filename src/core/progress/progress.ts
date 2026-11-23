@@ -8,6 +8,7 @@
  */
 import { isWord, type AnalyzedParagraph, type WordItem } from '#core/model'
 import { wordKey } from '#core/text/words'
+import type { Nullable } from '#core/types'
 
 /** Best reading score per paragraph id, in %. */
 export type BestScores = Record<string, number>
@@ -66,7 +67,7 @@ export interface Overview {
   /** `read / total`, in %. */
   percentRead: number
   /** Average best score of the paragraphs read, or `null` if none was read. */
-  average: number | null
+  average: Nullable<number>
 }
 
 /** Summarizes the best scores over the speech. */
@@ -95,7 +96,7 @@ export interface HardWord {
   /** Times it was missed. */
   missed: number
   /** The analyzed word, if it is still in the speech. */
-  item: WordItem | null
+  item: Nullable<WordItem>
 }
 
 /** The words to work on, most missed first. */

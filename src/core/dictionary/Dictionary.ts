@@ -3,6 +3,7 @@
  *
  * @packageDocumentation
  */
+import type { Nullable } from '#core/types'
 
 /** A meaning of the word. */
 export interface Sense {
@@ -46,7 +47,7 @@ export interface Dictionary {
    * @returns The definitions, or `null` if the word has no entry.
    * @throws On network errors, and when `signal` aborts.
    */
-  lookup(word: string, signal?: AbortSignal): Promise<Definition | null>
+  lookup(word: string, signal?: AbortSignal): Promise<Nullable<Definition>>
   /** Where to search for the word by hand. */
   searchUrl(word: string): string
 }

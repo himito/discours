@@ -7,6 +7,7 @@
  *
  * @packageDocumentation
  */
+import type { Nullable } from '#core/types'
 
 const UNITS = [
   'zéro',
@@ -119,7 +120,7 @@ const ROMAN: Record<string, number> = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500
  * @returns Its value, or `null` if `s` is not a canonical Roman numeral (`IIII` and `VX` are
  *   rejected).
  */
-export function parseRoman(s: string): number | null {
+export function parseRoman(s: string): Nullable<number> {
   if (!/^[IVXLCDM]+$/.test(s)) return null
   let total = 0
   for (let i = 0; i < s.length; i++) {

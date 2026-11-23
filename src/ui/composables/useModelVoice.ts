@@ -8,6 +8,7 @@ import { playParagraphs } from '#core/reading/playback'
 import type { Voice } from '#core/reading/SpeechSynthesizer'
 import { usePorts } from '#ui/ports'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { Nullable } from '#core/types'
 
 /** The word being spoken: its paragraph's index and its index in the paragraph's items. */
 export interface SpokenWord {
@@ -24,7 +25,7 @@ export interface ModelVoice {
   /** Whether paragraphs are being played. */
   readonly playing: Readonly<Ref<boolean>>
   /** The word being spoken, if any. */
-  readonly spoken: Readonly<Ref<SpokenWord | null>>
+  readonly spoken: Readonly<Ref<Nullable<SpokenWord>>>
   /**
    * Plays paragraphs `from` to `to` (default: only `from`) of the speech, one after the other.
    *
@@ -49,8 +50,8 @@ export function useModelVoice(): ModelVoice {
   const { synthesizer } = usePorts()
   const store = useDiscoursStore()
   const playing = ref(false)
-  const spoken = shallowRef<SpokenWord | null>(null)
-  let controller: AbortController | null = null
+  const spoken = shallowRef<Nullable<SpokenWord>>(null)
+  let controller: Nullable<AbortController> = null
 
   /**
    * Plays paragraphs `from` to `to` of the speech, one after the other.

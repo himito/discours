@@ -5,6 +5,7 @@
  *
  * @packageDocumentation
  */
+import type { Nullable } from '#core/types'
 
 /**
  * How a word is linked to the next one when spoken.
@@ -30,7 +31,7 @@ export interface WordItem {
    */
   ipa: string
   /** How this word links to the next one, or `null`. */
-  link: LinkType | null
+  link: Nullable<LinkType>
   /** The consonant added by a liaison (`z`, `t`, `n`, `p`, `ʁ`…), or `''`. */
   liaison: string
   /** Key of the user's IPA corrections and statistics for this word (see `wordKey`). */

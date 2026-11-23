@@ -28,6 +28,7 @@ import { useModelVoice } from '#ui/composables/useModelVoice'
 import { useReadingSession } from '#ui/composables/useReadingSession'
 import { clock, paragraphLabel, recognitionMessage, scoreClass } from '#ui/format'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { Nullable } from '#core/types'
 
 const store = useDiscoursStore()
 const voice = useModelVoice()
@@ -126,7 +127,7 @@ const summary = computed(() => {
 // ---------------------------------------------------------------- word panel
 
 /** Word open in the word panel, if any. */
-const practising = shallowRef<{ text: string; item: WordItem } | null>(null)
+const practising = shallowRef<Nullable<{ text: string; item: WordItem }>>(null)
 
 /** Opens the word panel, stopping voice and recognition. */
 function openWord(text: string, item: WordItem) {
@@ -139,7 +140,7 @@ function openWord(text: string, item: WordItem) {
 
 /** Space starts and ends the reading. */
 function onKey(e: KeyboardEvent) {
-  const t = e.target as HTMLElement | null
+  const t = e.target as Nullable<HTMLElement>
   if (practising.value || t?.closest('input, select, textarea, button, [role="button"]')) return
   if (e.code === 'Space') {
     e.preventDefault()

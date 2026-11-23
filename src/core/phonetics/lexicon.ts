@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 import { wordKey } from '#core/text/words'
+import type { Nullable } from '#core/types'
 
 /** IPA of each known word, by lower-cased word with straight apostrophes. */
 /* prettier-ignore */
@@ -50,7 +51,7 @@ function lookUp(word: string, elisions: number): string | undefined {
 }
 
 /** Splits a known elided prefix off a word: `l'archivage` → `l` + `archivage`. */
-function splitElision(word: string): { prefixIpa: string; rest: string } | null {
+function splitElision(word: string): Nullable<{ prefixIpa: string; rest: string }> {
   const apostrophe = word.indexOf("'")
   if (apostrophe <= 0) return null
   const prefixIpa = ELIDED_PREFIXES.get(word.slice(0, apostrophe + 1))

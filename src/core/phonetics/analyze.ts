@@ -32,6 +32,7 @@ import { isTechnicalTerm, matchKeys, textId, wordKey } from '#core/text/words'
 import { lexiconIpa } from './lexicon'
 import type { PhonemeTrace, Phonemizer } from './Phonemizer'
 import { cleanPhoneme, fixGlides, fixPalatal, isVowel, syllabify } from './syllables'
+import type { Nullable } from '#core/types'
 
 /**
  * Analyzes a French speech.
@@ -154,7 +155,7 @@ function phonemesByToken(
  * @param index - 0-based character index; positions outside the text are brought back into it.
  * @returns The token's index, or `null` if the sentence has no word.
  */
-function tokenAt(owner: Int32Array, index: number): number | null {
+function tokenAt(owner: Int32Array, index: number): Nullable<number> {
   if (!owner.length) return null
   const at = clamp(index, 0, owner.length - 1)
   const before = owner.subarray(0, at + 1).findLast(isWordCharacter)
@@ -230,7 +231,7 @@ function toWordItem(token: Token, phonemes: string[]): WordItem {
 }
 
 /** How a word joins the next: a liaison with its consonant, an enchaînement, or nothing. */
-type Link = { type: 'liaison'; consonant: string } | { type: 'enchainement' } | null
+type Link = Nullable<{ type: 'liaison'; consonant: string } | { type: 'enchainement' }>
 
 /**
  * How a word ending in a consonant joins the next word.

@@ -25,6 +25,7 @@ import { useModelVoice, useVoices } from '#ui/composables/useModelVoice'
 import { useReadingSession } from '#ui/composables/useReadingSession'
 import { clock, recognitionMessage, scoreClass, sectionTitle } from '#ui/format'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { Nullable } from '#core/types'
 
 const store = useDiscoursStore()
 const voice = useModelVoice()
@@ -134,12 +135,12 @@ function stopAll() {
 // ---------------------------------------------------------------- word panel
 
 /** Word open in the word panel, if any. */
-const practising = shallowRef<{ text: string; item: WordItem | null } | null>(null)
+const practising = shallowRef<Nullable<{ text: string; item: Nullable<WordItem> }>>(null)
 /** The word panel, to trigger "Répéter" with the space bar. */
 const wordPanel = ref<InstanceType<typeof WordPractice>>()
 
 /** Opens the word panel, stopping voice and recognition. */
-function openWord(text: string, item: WordItem | null) {
+function openWord(text: string, item: Nullable<WordItem>) {
   stopAll()
   practising.value = { text, item }
 }

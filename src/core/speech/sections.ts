@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 import { countWords, type AnalyzedParagraph } from '#core/model'
+import type { Nullable } from '#core/types'
 
 /** Reading speed aimed at, in words per minute. */
 export const TARGET_WPM = 135
@@ -57,7 +58,7 @@ export interface ParagraphLocation {
 }
 
 /** Where paragraph `index` is, or `null` for an unknown index. */
-export function locate(sections: readonly Section[], index: number): ParagraphLocation | null {
+export function locate(sections: readonly Section[], index: number): Nullable<ParagraphLocation> {
   for (const section of sections) {
     const found = section.paragraphs.find((p) => p.index === index)
     if (found) return { section, number: found.number }

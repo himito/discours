@@ -28,6 +28,7 @@ import type { ReadingScore } from '#core/reading/session'
 import { DEFAULT_SETTINGS, type SavedState } from '#core/state/state'
 import { usePorts } from '#ui/ports'
 import { SAMPLE_TEXT } from '#ui/sampleText'
+import type { Nullable } from '#core/types'
 
 /** State of the analysis. */
 export type AnalysisStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -65,7 +66,7 @@ export const useDiscoursStore = defineStore('discours', () => {
 
   const paragraphs = ref<AnalyzedParagraph[]>([])
   /** Text of the last finished analysis, to skip analyzing it again. */
-  const analyzedText = ref<string | null>(null)
+  const analyzedText = ref<Nullable<string>>(null)
   const status = ref<AnalysisStatus>('idle')
   const error = ref('')
 
@@ -103,7 +104,7 @@ export const useDiscoursStore = defineStore('discours', () => {
    * @param ipa - New IPA; `null`, blank or the analyzed IPA removes the correction.
    * @param analyzed - The word's analyzed IPA, if known.
    */
-  function setCorrection(key: string, ipa: string | null, analyzed?: string): void {
+  function setCorrection(key: string, ipa: Nullable<string>, analyzed?: string): void {
     overrides.value = withCorrection(overrides.value, key, ipa, analyzed)
   }
 

@@ -24,13 +24,14 @@ import { useModelVoice } from '#ui/composables/useModelVoice'
 import { recognitionMessage } from '#ui/format'
 import { usePorts } from '#ui/ports'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { Nullable } from '#core/types'
 
 /** Component props. */
 const props = defineProps<{
   /** The word as written (punctuation is stripped for display and speech). */
   text: string
   /** The analyzed word, if known: gives its IPA and liaison. */
-  item: WordItem | null
+  item: Nullable<WordItem>
 }>()
 /** `close`: the panel is closed (× or Escape). */
 const emit = defineEmits<{ close: [] }>()
@@ -70,7 +71,7 @@ const message = ref(
 /** Result of the last attempt, for its colour. */
 const verdict = ref<'' | 'good' | 'bad'>('')
 /** The recognition in progress, if any. */
-const listening = shallowRef<UtteranceRecognition | null>(null)
+const listening = shallowRef<Nullable<UtteranceRecognition>>(null)
 
 /** Listens for the word once and grades it; calling it again while listening stops. */
 async function repeat() {

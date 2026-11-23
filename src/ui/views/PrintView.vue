@@ -28,6 +28,7 @@ import { saveFile } from '#ui/download'
 import { duration, sectionTitle } from '#ui/format'
 import { usePorts } from '#ui/ports'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { Nullable } from '#core/types'
 
 const store = useDiscoursStore()
 const { rasterizer } = usePorts()
@@ -200,7 +201,7 @@ onBeforeUnmount(() => observer?.disconnect())
 /** The preview's pages container. */
 const pages = ref<HTMLElement>()
 /** Pages captured so far while making the PDF, or `null`. */
-const exporting = ref<{ done: number; total: number } | null>(null)
+const exporting = ref<Nullable<{ done: number; total: number }>>(null)
 /** Message shown when the PDF could not be made. */
 const exportError = ref('')
 
