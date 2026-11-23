@@ -3,6 +3,9 @@
   "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
   "exclude": [],
   "compilerOptions": {
+    // ES2023 built-ins (findLast…): all browsers in Vite's default build target support them.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+
     // Extra safety for array and object lookups, but may have false positives.
     "noUncheckedIndexedAccess": true,
 

@@ -72,4 +72,13 @@ describe('createAnalyzer', () => {
     await analyze('Les enfants avec elle.')
     expect(phonemizer.calls[1]).toEqual(['avec', 'elle'])
   })
+
+  it('does not ask the phonemizer for isolated words when all are known', async () => {
+    const phonemizer = new FakePhonemizer()
+    const analyze = createAnalyzer(phonemizer)
+    await analyze('Les enfants.')
+    phonemizer.calls = []
+    await analyze('Les enfants.')
+    expect(phonemizer.calls).toEqual([['Les enfants.']])
+  })
 })

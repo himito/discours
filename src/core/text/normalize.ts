@@ -357,11 +357,17 @@ function spell(acronym: string): string {
   return [...acronym].map((c) => LETTER_NAMES[c.toUpperCase()] ?? c).join('-')
 }
 
+/**
+ * In a {@link NormalizedSentence.owner} map: a character that belongs to no word (a space or
+ * punctuation).
+ */
+export const SEPARATOR = -1
+
 /** A sentence rewritten for eSpeak, with the way back to the original tokens. */
 export interface NormalizedSentence {
   /** Text sent to eSpeak. */
   text: string
-  /** For each character of `text`, index of the token it comes from (-1 for separators). */
+  /** For each character of `text`, index of the token it comes from, or {@link SEPARATOR}. */
   owner: Int32Array
 }
 
@@ -389,10 +395,10 @@ export function normalizeSentence(tokens: Token[]): NormalizedSentence {
               : ''
           : tok.text
     text += piece
-    for (let k = 0; k < piece.length; k++) owners.push(tok.kind === 'word' ? i : -1)
+    for (let k = 0; k < piece.length; k++) owners.push(tok.kind === 'word' ? i : SEPARATOR)
     const space = tok.space ? ' ' : ''
     text += space
-    if (space) owners.push(-1)
+    if (space) owners.push(SEPARATOR)
   })
   return { text, owner: Int32Array.from(owners) }
 }
