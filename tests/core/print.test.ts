@@ -62,7 +62,23 @@ describe('file names', () => {
 describe('PDF', () => {
   it('reads JPEG sizes', () => {
     expect(jpegSize(fakeJpeg(640, 480))).toEqual({ width: 640, height: 480 })
-    expect(() => jpegSize(new Uint8Array([0xff, 0xd8]))).toThrow()
+    expect(() => jpegSize(new Uint8Array([0xff, 0xd8]))).toThrow(/no frame header/)
+  })
+
+  it('rejects files that are not JPEG, damaged or truncated', () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    expect(() => jpegSize(png)).toThrow(/not a JPEG file/)
+    expect(() => jpegSize(new Uint8Array([0xff, 0xd8, 0x00, 0xc0, 0x00, 0x11]))).toThrow(
+      /damaged segment/,
+    )
+    expect(() => jpegSize(fakeJpeg(640, 480).slice(0, 8))).toThrow(/truncated frame header/)
+  })
+
+  it('skips the segments before the frame header', () => {
+    const app0 = [0xff, 0xe0, 0x00, 0x04, 0x4a, 0x46]
+    const jpeg = fakeJpeg(517, 300)
+    const withApp0 = new Uint8Array([...jpeg.slice(0, 2), ...app0, ...jpeg.slice(2)])
+    expect(jpegSize(withApp0)).toEqual({ width: 517, height: 300 })
   })
 
   it('writes one page per image', () => {

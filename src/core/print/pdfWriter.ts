@@ -18,22 +18,69 @@ export interface ImageSize {
   height: number
 }
 
-/** Reads the pixel size of a JPEG from its first SOF marker. */
-export function jpegSize(bytes: Uint8Array): ImageSize {
-  let i = 2
-  while (i < bytes.length) {
-    const marker = bytes[i + 1]!
-    const length = (bytes[i + 2]! << 8) | bytes[i + 3]!
-    // SOF0–SOF15, except DHT (C4), JPG (C8) and DAC (CC).
-    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker))
-      return {
-        height: (bytes[i + 5]! << 8) | bytes[i + 6]!,
-        width: (bytes[i + 7]! << 8) | bytes[i + 8]!,
-      }
-    i += 2 + length
-  }
-  throw new Error('Unreadable JPEG image')
+/** Marker at the start of every JPEG file (SOI). */
+const START_OF_IMAGE = 0xffd8
+/** First byte of every segment marker. */
+const MARKER_PREFIX = 0xff
+/** Markers in the frame header range (SOF0–SOF15) that are not frame headers. */
+const NOT_FRAME_HEADERS = new Set([0xc4 /* DHT */, 0xc8 /* JPG */, 0xcc /* DAC */])
+/**
+ * Byte offsets in a frame header segment: marker (2 bytes), length (2), sample precision (1),
+ * height (2), width (2).
+ */
+const FRAME_HEADER = { height: 5, width: 7, size: 9 }
+
+/** A segment of a JPEG file: its marker, and where it starts. */
+interface Segment {
+  marker: number
+  offset: number
 }
+
+/**
+ * Reads the pixel size of a JPEG from its frame header.
+ *
+ * @throws If the bytes are not a JPEG file, or are damaged or truncated before the frame header.
+ */
+export function jpegSize(bytes: Uint8Array): ImageSize {
+  const data = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  for (const segment of segments(data))
+    if (isFrameHeader(segment.marker)) return frameSize(data, segment.offset)
+  throw unreadable('no frame header')
+}
+
+/**
+ * The segments of a JPEG file, after its start-of-image marker.
+ *
+ * @remarks Each segment is `0xFF`, a marker byte, then its length on 2 bytes (big-endian, counting
+ * the length itself but not the marker).
+ */
+function* segments(data: DataView): Generator<Segment> {
+  if (data.byteLength < 2 || data.getUint16(0) !== START_OF_IMAGE)
+    throw unreadable('not a JPEG file')
+  let offset = 2
+  while (offset + 4 <= data.byteLength) {
+    if (data.getUint8(offset) !== MARKER_PREFIX) throw unreadable('damaged segment')
+    yield { marker: data.getUint8(offset + 1), offset }
+    offset += 2 + data.getUint16(offset + 2)
+  }
+}
+
+/** Whether a marker starts a frame header (SOF), which holds the image size. */
+function isFrameHeader(marker: number): boolean {
+  return marker >= 0xc0 && marker <= 0xcf && !NOT_FRAME_HEADERS.has(marker)
+}
+
+/** Reads the size from the frame header segment at `offset`. */
+function frameSize(data: DataView, offset: number): ImageSize {
+  if (offset + FRAME_HEADER.size > data.byteLength) throw unreadable('truncated frame header')
+  return {
+    width: data.getUint16(offset + FRAME_HEADER.width),
+    height: data.getUint16(offset + FRAME_HEADER.height),
+  }
+}
+
+/** The error for a file whose size can't be read. */
+const unreadable = (reason: string) => new Error(`Unreadable JPEG image: ${reason}`)
 
 /**
  * Writes a PDF with one A4 page per JPEG, each image filling its page.
