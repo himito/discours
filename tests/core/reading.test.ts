@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { align, isWordRecognized, sameWord } from '#core/reading/align'
+import { align, closeEnough, isWordRecognized, sameWord } from '#core/reading/align'
 import {
   followReading,
   readingTarget,
@@ -26,6 +26,21 @@ describe('align', () => {
     expect(perItem.get(1)).toEqual({ heard: 1, total: 1 })
     expect(perItem.get(2)).toEqual({ heard: 0, total: 1 })
     expect(lastHit).toBe(3)
+  })
+
+  it('ignores extra and repeated words in the transcript', () => {
+    const { perItem, lastHit } = align(speech[0]!.items, 'euh les les enfants bon sont arrivés')
+    expect([...perItem.values()].every((h) => h.heard === h.total)).toBe(true)
+    expect(lastHit).toBe(3)
+    expect(align(speech[0]!.items, '').lastHit).toBe(-1)
+  })
+
+  it('accepts a close single word only when long enough', () => {
+    expect(closeEnough('maison', 'maison')).toBe(true)
+    expect(closeEnough('raison', 'maison')).toBe(true)
+    expect(closeEnough('maisons', 'maison')).toBe(true)
+    expect(closeEnough('raisin', 'maison')).toBe(false)
+    expect(closeEnough('bas', 'bal')).toBe(false)
   })
 
   it('checks single words leniently, on the part after an elision', () => {

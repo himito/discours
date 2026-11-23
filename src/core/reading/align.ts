@@ -1,8 +1,8 @@
 /**
  * Scoring of a reading against the text.
  *
- * @remarks Same algorithm as the original prototype. What the recognizer heard is aligned with the
- * expected words by longest common subsequence, with a tolerant word comparison
+ * @remarks What the recognizer heard is aligned with the expected words by
+ * longest common subsequence, with a tolerant word comparison
  * ({@link sameWord}). Skipped or misheard words are then missing from the alignment.
  *
  * @packageDocumentation
@@ -44,7 +44,7 @@ export interface WordHearing {
 export interface Alignment {
   /** For each word's item index: how many of its parts were heard, out of how many. */
   perItem: Map<number, WordHearing>
-  /** Index of the last item that was heard (words after it are not judged yet). */
+  /** Index of the last item that was heard, or -1 if none (words after it are not judged yet). */
   lastHit: number
 }
 
@@ -52,8 +52,9 @@ export interface Alignment {
  * Aligns a recognizer transcript with the words of a paragraph.
  *
  * @remarks Each word may have several parts (see `WordItem.match`: *l'équipe* → `l`, `equipe`). A
- * word counts as understood when all its parts were heard. Runs in O(expected × heard) time and
- * memory, which is fine for a paragraph.
+ * word counts as understood when all its parts were heard. The parts are aligned with the heard
+ * words by longest common subsequence, which tolerates skipped, repeated and extra words. Runs in
+ * O(expected × heard) time and memory, which is fine for a paragraph.
  *
  * @param items - Items of the paragraph.
  * @param heardText - Everything the recognizer transcribed so far.
@@ -66,61 +67,116 @@ export interface Alignment {
  * ```
  */
 export function align(items: Item[], heardText: string): Alignment {
-  const exp: { k: string; item: number }[] = []
-  items.forEach((it, i) => {
-    if (it.kind === 'word') it.match.forEach((k) => exp.push({ k, item: i }))
-  })
+  const expected = expectedParts(items)
   const heard = transcriptKeys(heardText)
+  const matched = matchedParts(expected, heard)
+  return tallyByWord(expected, matched)
+}
 
-  const n = exp.length
-  const m = heard.length
-  const D = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1))
-  for (let i = n - 1; i >= 0; i--) {
-    for (let j = m - 1; j >= 0; j--) {
-      D[i]![j] = sameWord(exp[i]!.k, heard[j]!)
-        ? D[i + 1]![j + 1]! + 1
-        : Math.max(D[i + 1]![j]!, D[i]![j + 1]!)
+/** A part of a word to be heard: its comparison key, and the item it belongs to. */
+interface ExpectedPart {
+  key: string
+  item: number
+}
+
+/** The parts of every word of the paragraph, in reading order. */
+function expectedParts(items: readonly Item[]): ExpectedPart[] {
+  return items.flatMap((item, index) =>
+    item.kind === 'word' ? item.match.map((key) => ({ key, item: index })) : [],
+  )
+}
+
+/**
+ * Which expected parts were heard, as indexes into `expected`.
+ *
+ * @remarks Walks the longest common subsequence: a part and a heard word that match are paired;
+ * otherwise whichever side keeps the longer remaining subsequence is skipped.
+ */
+function matchedParts(expected: readonly ExpectedPart[], heard: readonly string[]): Set<number> {
+  const remaining = commonSuffixLengths(expected, heard)
+  const matched = new Set<number>()
+  let e = 0
+  let h = 0
+  while (e < expected.length && h < heard.length) {
+    if (sameWord(expected[e]!.key, heard[h]!)) {
+      matched.add(e)
+      e++
+      h++
+    } else if (remaining.at(e + 1, h) >= remaining.at(e, h + 1)) e++
+    else h++
+  }
+  return matched
+}
+
+/** Lengths of the longest common subsequences of every pair of suffixes. */
+interface SuffixLengths {
+  /** Length for `expected` from part `e` on and `heard` from word `h` on. */
+  at(e: number, h: number): number
+}
+
+/**
+ * Computes {@link SuffixLengths} by dynamic programming, from the ends of both lists.
+ */
+function commonSuffixLengths(
+  expected: readonly ExpectedPart[],
+  heard: readonly string[],
+): SuffixLengths {
+  const rows = Array.from({ length: expected.length + 1 }, () => new Uint16Array(heard.length + 1))
+  const at = (e: number, h: number) => rows[e]![h]!
+  for (let e = expected.length - 1; e >= 0; e--) {
+    for (let h = heard.length - 1; h >= 0; h--) {
+      rows[e]![h] = sameWord(expected[e]!.key, heard[h]!)
+        ? at(e + 1, h + 1) + 1
+        : Math.max(at(e + 1, h), at(e, h + 1))
     }
   }
-  const hit = new Set<number>()
-  let i = 0
-  let j = 0
-  while (i < n && j < m) {
-    if (sameWord(exp[i]!.k, heard[j]!)) {
-      hit.add(i)
-      i++
-      j++
-    } else if (D[i + 1]![j]! >= D[i]![j + 1]!) i++
-    else j++
-  }
+  return { at }
+}
 
-  const perItem = new Map<number, { heard: number; total: number }>()
+/** Counts heard and total parts per word, and finds the last word heard. */
+function tallyByWord(expected: readonly ExpectedPart[], matched: ReadonlySet<number>): Alignment {
+  const perItem = new Map<number, WordHearing>()
   let lastHit = -1
-  exp.forEach((e, k) => {
-    const v = perItem.get(e.item) ?? { heard: 0, total: 0 }
-    v.total++
-    if (hit.has(k)) {
-      v.heard++
-      lastHit = Math.max(lastHit, e.item)
+  expected.forEach((part, index) => {
+    const hearing = perItem.get(part.item) ?? { heard: 0, total: 0 }
+    hearing.total++
+    if (matched.has(index)) {
+      hearing.heard++
+      lastHit = Math.max(lastHit, part.item)
     }
-    perItem.set(e.item, v)
+    perItem.set(part.item, hearing)
   })
   return { perItem, lastHit }
 }
 
+/** Words shorter than this must be heard exactly, in single-word practice. */
+const MIN_FUZZY_LENGTH = 4
+/** Letters that may differ between a long heard word and its target. */
+const MAX_DIFFERENT_LETTERS = 1
+
 /**
  * Whether a heard word is close enough to the target, in single-word practice.
  *
- * @remarks Stricter than {@link sameWord}. The words must be equal, or (both 4 letters or more)
- * differ by at most one letter at the same position, or one must start with the other.
+ * @remarks Stricter than {@link sameWord}. The words must be equal, or, when both have at least
+ * 4 letters, differ by at most one letter at the same position, or one must start with the other.
+ *
+ * @param heard - The heard word, normalized with `normForMatch`.
+ * @param target - The word to say, normalized the same way.
  */
-export function closeEnough(a: string, b: string): boolean {
-  if (a === b) return true
-  if (a.length < 4 || b.length < 4) return false
-  let d = 0
-  const n = Math.max(a.length, b.length)
-  for (let i = 0; i < n; i++) if (a[i] !== b[i]) d++
-  return d <= 1 || a.startsWith(b) || b.startsWith(a)
+export function closeEnough(heard: string, target: string): boolean {
+  if (heard === target) return true
+  if (heard.length < MIN_FUZZY_LENGTH || target.length < MIN_FUZZY_LENGTH) return false
+  return (
+    differentLetters(heard, target) <= MAX_DIFFERENT_LETTERS ||
+    heard.startsWith(target) ||
+    target.startsWith(heard)
+  )
+}
+
+/** Positions where two words have different letters; extra letters of the longer one count. */
+function differentLetters(a: string, b: string): number {
+  const length = Math.max(a.length, b.length)
+  return Array.from({ length }, (_, i) => a[i] !== b[i]).filter(Boolean).length
 }
 
 /**
