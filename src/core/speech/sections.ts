@@ -30,6 +30,9 @@ export interface Section {
   words: number
 }
 
+/** What names a section for the reader: its number and title (in headings, file names…). */
+export type SectionHeading = Pick<Section, 'number' | 'title'>
+
 /** Groups consecutive paragraphs by section. */
 export function groupBySection(speech: readonly AnalyzedParagraph[]): Section[] {
   const sections: Section[] = []

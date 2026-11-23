@@ -3,6 +3,7 @@
  *
  * @packageDocumentation
  */
+import type { SectionHeading } from '#core/speech/sections'
 
 /** A title as a file-name part: lower case, no accents, dashes between words. */
 export function slug(title: string): string {
@@ -17,10 +18,10 @@ export function slug(title: string): string {
 /**
  * Name of the PDF: `discours.pdf`, `discours-fiches.pdf`, `discours-2-conclusion-fiches.pdf`…
  *
- * @param section - The single section exported, if not the whole speech.
+ * @param section - The single section exported, or `null` for the whole speech.
  * @param cards - Whether the cards template is used.
  */
-export function pdfFileName(section: { number: number; title: string } | null, cards: boolean) {
+export function pdfFileName(section: SectionHeading | null, cards: boolean): string {
   const parts = ['discours']
   if (section) parts.push(String(section.number), slug(section.title))
   if (cards) parts.push('fiches')
