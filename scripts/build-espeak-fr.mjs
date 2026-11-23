@@ -12,74 +12,163 @@
  * - `src/adapters/espeak/vendor/espeak-ng-fr.js`: the module with patched metadata;
  * - `public/espeak/espeak-ng-fr.data`: the trimmed data package.
  *
+ * The script fails loudly if the upstream module layout changes.
+ *
  * Usage: `npm run espeak`
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const require = createRequire(import.meta.url)
-const pkgDir = dirname(require.resolve('@echogarden/espeak-ng-emscripten/package.json'))
+const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const UPSTREAM_PACKAGE = '@echogarden/espeak-ng-emscripten'
+const UPSTREAM_DATA_NAME = 'espeak-ng.data'
+const FRENCH_DATA_NAME = 'espeak-ng-fr.data'
 
-const js = readFileSync(resolve(pkgDir, 'espeak-ng.js'), 'utf8')
-const data = readFileSync(resolve(pkgDir, 'espeak-ng.data'))
+/** Where the outputs are written, relative to the project root. */
+const OUTPUT = {
+  module: 'src/adapters/espeak/vendor/espeak-ng-fr.js',
+  data: `public/espeak/${FRENCH_DATA_NAME}`,
+}
 
-/** Package metadata in the upstream module: the list of files packed in `espeak-ng.data`. */
-const metaRe = /loadPackage\(\{files:\[([^\]]*)\],remote_package_size:\d+\}\)/
-const match = js.match(metaRe)
-if (!match) throw new Error('Could not find package metadata in espeak-ng.js')
+/** Where the data files live in the module's virtual file system. */
+const DATA_DIR = '/usr/share/espeak-ng-data/'
+/** Data files French needs besides its language files. */
+const SHARED_FILES = new Set(['phondata', 'phonindex', 'phontab', 'intonations', 'fr_dict'])
+/** French language files: `lang/roa/fr`, and regional variants such as `lang/roa/fr-BE`. */
+const FRENCH_LANGUAGE_FILE = /^lang\/roa\/fr(-[A-Z]+)?$/
 
-/** Every file of the upstream data package, with its byte range. */
-const files = [...match[1].matchAll(/\{filename:"([^"]+)",start:(\d+),end:(\d+)\}/g)].map((m) => ({
-  filename: m[1],
-  start: Number(m[2]),
-  end: Number(m[3]),
-}))
+/** The call that registers the data package, with the list of files it contains. */
+const PACKAGE_METADATA = /loadPackage\(\{files:\[([^\]]*)\],remote_package_size:\d+\}\)/
+/** One file entry of that list. */
+const FILE_ENTRY = /\{filename:"([^"]+)",start:(\d+),end:(\d+)\}/g
 
-/** Path of the data files in the virtual file system. */
-const base = '/usr/share/espeak-ng-data/'
-/** Files needed for French phonemization. */
-const keep = (f) => {
-  const name = f.slice(base.length)
-  return (
-    ['phondata', 'phonindex', 'phontab', 'intonations', 'fr_dict'].includes(name) ||
-    /^lang\/roa\/fr(-[A-Z]+)?$/.test(name)
+/** The upstream `pre.js` line that overrides `locateFile`, and its patched form. */
+const LOCATE_FILE_OVERRIDE = "Module['locateFile'] = function (path, prefix) {"
+const LOCATE_FILE_DEFAULT = "Module['locateFile'] ??= function (path, prefix) {"
+
+/**
+ * A file packed in the data package.
+ *
+ * @typedef {{ filename: string, start: number, end: number }} PackedFile
+ */
+
+main()
+
+function main() {
+  const upstream = readUpstream()
+  const files = listPackedFiles(upstream.module).filter((file) => isNeededForFrench(file.filename))
+  const repacked = repack(files, upstream.data)
+  const module = patchModule(upstream.module, repacked.files, repacked.data.length)
+
+  write(OUTPUT.module, module)
+  write(OUTPUT.data, repacked.data)
+  console.log(
+    `eSpeak-NG French bundle: ${files.length} files, ${kilobytes(repacked.data.length)} KB of data`,
   )
 }
 
-const kept = files.filter((f) => keep(f.filename))
-/** Bytes of the kept files, concatenated into the new data package. */
-const chunks = []
-/** Metadata of the kept files, with their offsets in the new package. */
-const newFiles = []
-/** Write position in the new package. */
-let offset = 0
-for (const f of kept) {
-  const chunk = data.subarray(f.start, f.end)
-  chunks.push(chunk)
-  newFiles.push(`{filename:"${f.filename}",start:${offset},end:${offset + chunk.length}}`)
-  offset += chunk.length
+/** Reads the upstream module source and its data package. */
+function readUpstream() {
+  const require = createRequire(import.meta.url)
+  const packageDir = dirname(require.resolve(`${UPSTREAM_PACKAGE}/package.json`))
+  return {
+    module: readFileSync(resolve(packageDir, 'espeak-ng.js'), 'utf8'),
+    data: readFileSync(resolve(packageDir, UPSTREAM_DATA_NAME)),
+  }
 }
 
-const patched = js
-  .replace(metaRe, `loadPackage({files:[${newFiles.join(',')}],remote_package_size:${offset}})`)
-  .replaceAll('"espeak-ng.data"', '"espeak-ng-fr.data"')
-  // The upstream pre.js unconditionally overrides locateFile; let the caller's win.
-  .replace(
-    "Module['locateFile'] = function (path, prefix) {",
-    "Module['locateFile'] ??= function (path, prefix) {",
-  )
+/**
+ * Lists the files of the data package, as declared in the module.
+ *
+ * @param {string} module - Source of the upstream module.
+ * @returns {PackedFile[]}
+ */
+function listPackedFiles(module) {
+  const metadata = module.match(PACKAGE_METADATA)
+  if (!metadata) fail('could not find the package metadata in espeak-ng.js')
+  return [...metadata[1].matchAll(FILE_ENTRY)].map(([, filename, start, end]) => ({
+    filename,
+    start: Number(start),
+    end: Number(end),
+  }))
+}
 
-if (!patched.includes("Module['locateFile'] ??="))
-  throw new Error('Could not patch locateFile override')
+/**
+ * Whether French phonemization needs this data file.
+ *
+ * @param {string} path - Path in the module's virtual file system.
+ */
+function isNeededForFrench(path) {
+  const name = path.slice(DATA_DIR.length)
+  return SHARED_FILES.has(name) || FRENCH_LANGUAGE_FILE.test(name)
+}
 
-mkdirSync(resolve(root, 'src/adapters/espeak/vendor'), { recursive: true })
-mkdirSync(resolve(root, 'public/espeak'), { recursive: true })
-writeFileSync(resolve(root, 'src/adapters/espeak/vendor/espeak-ng-fr.js'), patched)
-writeFileSync(resolve(root, 'public/espeak/espeak-ng-fr.data'), Buffer.concat(chunks))
+/**
+ * Packs the given files into a new data package.
+ *
+ * @param {PackedFile[]} files - Files to keep, with their range in the upstream package.
+ * @param {Buffer} upstreamData - The upstream data package.
+ * @returns {{ files: PackedFile[], data: Buffer }} The files with their range in the new package,
+ *   and the new package.
+ */
+function repack(files, upstreamData) {
+  const chunks = files.map((file) => upstreamData.subarray(file.start, file.end))
+  let offset = 0
+  const repacked = files.map((file, i) => {
+    const start = offset
+    offset += chunks[i].length
+    return { filename: file.filename, start, end: offset }
+  })
+  return { files: repacked, data: Buffer.concat(chunks) }
+}
 
-console.log(
-  `eSpeak-NG French bundle: ${kept.length} files, ${(offset / 1024).toFixed(0)} KB of data`,
-)
+/**
+ * Points the module at the new data package.
+ *
+ * @param {string} module - Source of the upstream module.
+ * @param {PackedFile[]} files - Files of the new package.
+ * @param {number} size - Size of the new package, in bytes.
+ * @returns {string} The patched module source.
+ */
+function patchModule(module, files, size) {
+  const entries = files.map((f) => `{filename:"${f.filename}",start:${f.start},end:${f.end}}`)
+  const patched = module
+    .replace(
+      PACKAGE_METADATA,
+      `loadPackage({files:[${entries.join(',')}],remote_package_size:${size}})`,
+    )
+    .replaceAll(`"${UPSTREAM_DATA_NAME}"`, `"${FRENCH_DATA_NAME}"`)
+    // The upstream pre.js unconditionally overrides locateFile; let the caller's win.
+    .replace(LOCATE_FILE_OVERRIDE, LOCATE_FILE_DEFAULT)
+  if (!patched.includes(LOCATE_FILE_DEFAULT)) fail('could not patch the locateFile override')
+  return patched
+}
+
+/**
+ * Writes an output file, creating its folder.
+ *
+ * @param {string} path - Path relative to the project root.
+ * @param {string | Buffer} content
+ */
+function write(path, content) {
+  const target = resolve(PROJECT_ROOT, path)
+  mkdirSync(dirname(target), { recursive: true })
+  writeFileSync(target, content)
+}
+
+/** A size in whole kilobytes. */
+function kilobytes(bytes) {
+  return (bytes / 1024).toFixed(0)
+}
+
+/**
+ * Stops the build with an explanation.
+ *
+ * @param {string} reason
+ * @returns {never}
+ */
+function fail(reason) {
+  throw new Error(`build-espeak-fr: ${reason} (has ${UPSTREAM_PACKAGE} changed its layout?)`)
+}

@@ -12,45 +12,69 @@
 # The script only copies files; publishing the destination is up to you.
 set -euo pipefail
 
-APP="discours"
+readonly APP="discours"
+readonly LOCAL_CONFIG=".deploy.local"
 
-cd "$(dirname "$0")/.."
-
-# shellcheck source=/dev/null
-[ -f .deploy.local ] && source .deploy.local
-
-BASE="${BASE_PATH:-/apps/${APP}/}"
-APPS_DIR="${1:-${DEPLOY_DIR:-}}"
-
-if [ -z "$APPS_DIR" ]; then
-  echo "error: no destination. Pass a folder (npm run deploy -- /path/to/apps)," >&2
-  echo "       set DEPLOY_DIR, or define it in .deploy.local." >&2
+# Prints an error and stops.
+fail() {
+  local line
+  for line in "$@"; do echo "$line" >&2; done
   exit 1
-fi
-if [ ! -d "$APPS_DIR" ]; then
-  echo "error: destination folder not found: $APPS_DIR" >&2
-  exit 1
-fi
-TARGET="${APPS_DIR%/}/${APP}"
+}
 
-echo "› Building with base ${BASE}"
-BASE_PATH="$BASE" npm run build
+# The folder of apps to install into: the first argument, else DEPLOY_DIR.
+apps_dir() {
+  local dir="${1:-${DEPLOY_DIR:-}}"
+  [ -n "$dir" ] || fail \
+    "error: no destination. Pass a folder (npm run deploy -- /path/to/apps)," \
+    "       set DEPLOY_DIR, or define it in ${LOCAL_CONFIG}."
+  [ -d "$dir" ] || fail "error: destination folder not found: $dir"
+  echo "${dir%/}"
+}
 
-echo "› Installing into ${TARGET}"
-mkdir -p "$TARGET"
-# --delete removes files from previous builds (old hashed assets).
-rsync -a --delete dist/ "$TARGET/"
+# Builds the app into dist/, served from the public path $1.
+build() {
+  local base="$1"
+  echo "› Building with base ${base}"
+  BASE_PATH="$base" npm run build
+}
 
-# Apache: serve index.html for the app's routes (e.g. ${BASE}texte).
+# Copies dist/ into $1, removing files from previous builds (old hashed assets).
+install() {
+  local target="$1"
+  echo "› Installing into ${target}"
+  mkdir -p "$target"
+  rsync -a --delete dist/ "$target/"
+}
+
+# Writes the Apache rules that serve index.html for the app's routes (e.g. ${base}texte).
 # Static hosts without per-folder rewrites (GitHub Pages) need a 404.html redirect instead,
 # see the restore script at the top of index.html.
-cat > "$TARGET/.htaccess" <<EOF
+write_htaccess() {
+  local target="$1" base="$2"
+  cat > "$target/.htaccess" <<EOF
 RewriteEngine On
-RewriteBase ${BASE}
+RewriteBase ${base}
 RewriteRule ^index\.html$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . ${BASE}index.html [L]
+RewriteRule . ${base}index.html [L]
 EOF
+}
 
-echo "✓ Installed $(du -sh "$TARGET" | cut -f1) in ${TARGET}"
+main() {
+  cd "$(dirname "$0")/.."
+  # shellcheck source=/dev/null
+  if [ -f "$LOCAL_CONFIG" ]; then source "$LOCAL_CONFIG"; fi
+
+  local base="${BASE_PATH:-/apps/${APP}/}"
+  local target
+  target="$(apps_dir "${1:-}")/${APP}"
+
+  build "$base"
+  install "$target"
+  write_htaccess "$target" "$base"
+  echo "✓ Installed $(du -sh "$target" | cut -f1) in ${target}"
+}
+
+main "$@"
