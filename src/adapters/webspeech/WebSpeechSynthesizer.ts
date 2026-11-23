@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-import type { SpeakOptions, SpeechSynthesizer, Voice } from '@/core/reading/SpeechSynthesizer'
+import type { SpeakOptions, SpeechSynthesizer, Voice } from '#core/reading/SpeechSynthesizer'
 
 /**
  * How good a voice usually sounds: fr-FR voices, Google first, then Thomas / Amélie / Denise /

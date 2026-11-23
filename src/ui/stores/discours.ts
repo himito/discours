@@ -12,13 +12,9 @@
  */
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import type { AnalyzedParagraph, WordItem } from '@/core/model'
-import { createAnalyzer } from '@/core/phonetics/analyze'
-import {
-  ipaOf as correctedIpa,
-  withCorrection,
-  type Corrections,
-} from '@/core/progress/corrections'
+import type { AnalyzedParagraph, WordItem } from '#core/model'
+import { createAnalyzer } from '#core/phonetics/analyze'
+import { ipaOf as correctedIpa, withCorrection, type Corrections } from '#core/progress/corrections'
 import {
   afterSuccess,
   withAttempt,
@@ -27,11 +23,11 @@ import {
   type BestScores,
   type HardWords,
   type WordStats,
-} from '@/core/progress/progress'
-import type { ReadingScore } from '@/core/reading/session'
-import { DEFAULT_SETTINGS, type SavedState } from '@/core/state/state'
-import { usePorts } from '@/ui/ports'
-import { SAMPLE_TEXT } from '@/ui/sampleText'
+} from '#core/progress/progress'
+import type { ReadingScore } from '#core/reading/session'
+import { DEFAULT_SETTINGS, type SavedState } from '#core/state/state'
+import { usePorts } from '#ui/ports'
+import { SAMPLE_TEXT } from '#ui/sampleText'
 
 /** State of the analysis. */
 export type AnalysisStatus = 'idle' | 'loading' | 'ready' | 'error'

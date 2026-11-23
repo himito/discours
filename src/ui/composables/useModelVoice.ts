@@ -4,10 +4,10 @@
  * @packageDocumentation
  */
 import { onScopeDispose, readonly, ref, shallowRef, type Ref } from 'vue'
-import { playParagraphs } from '@/core/reading/playback'
-import type { Voice } from '@/core/reading/SpeechSynthesizer'
-import { usePorts } from '@/ui/ports'
-import { useDiscoursStore } from '@/ui/stores/discours'
+import { playParagraphs } from '#core/reading/playback'
+import type { Voice } from '#core/reading/SpeechSynthesizer'
+import { usePorts } from '#ui/ports'
+import { useDiscoursStore } from '#ui/stores/discours'
 
 /** The word being spoken: its paragraph's index and its index in the paragraph's items. */
 export interface SpokenWord {

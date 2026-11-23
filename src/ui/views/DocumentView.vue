@@ -14,20 +14,20 @@
  * Route `/discours`.
  */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import type { WordItem } from '@/core/model'
+import type { WordItem } from '#core/model'
 import {
   groupBySection,
   locate,
   readingSeconds,
   TARGET_WPM,
   totalWords,
-} from '@/core/speech/sections'
-import SpeechText from '@/ui/components/SpeechText.vue'
-import WordPractice from '@/ui/components/WordPractice.vue'
-import { useModelVoice } from '@/ui/composables/useModelVoice'
-import { useReadingSession } from '@/ui/composables/useReadingSession'
-import { clock, paragraphLabel, recognitionMessage, scoreClass } from '@/ui/format'
-import { useDiscoursStore } from '@/ui/stores/discours'
+} from '#core/speech/sections'
+import SpeechText from '#ui/components/SpeechText.vue'
+import WordPractice from '#ui/components/WordPractice.vue'
+import { useModelVoice } from '#ui/composables/useModelVoice'
+import { useReadingSession } from '#ui/composables/useReadingSession'
+import { clock, paragraphLabel, recognitionMessage, scoreClass } from '#ui/format'
+import { useDiscoursStore } from '#ui/stores/discours'
 
 const store = useDiscoursStore()
 const voice = useModelVoice()

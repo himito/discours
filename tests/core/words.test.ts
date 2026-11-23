@@ -7,7 +7,7 @@ import {
   textId,
   transcriptKeys,
   wordKey,
-} from '@/core/text/words'
+} from '#core/text/words'
 
 describe('words', () => {
   it('strips attached punctuation', () => {

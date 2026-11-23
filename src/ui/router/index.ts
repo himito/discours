@@ -14,16 +14,16 @@
  * @packageDocumentation
  */
 import { createRouter, createWebHistory } from 'vue-router'
-import PracticeView from '@/ui/views/PracticeView.vue'
+import PracticeView from '#ui/views/PracticeView.vue'
 
 /** The router, installed in `main.ts`. */
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'entrainement', component: PracticeView },
-    { path: '/texte', name: 'texte', component: () => import('@/ui/views/EditorView.vue') },
-    { path: '/discours', name: 'discours', component: () => import('@/ui/views/DocumentView.vue') },
-    { path: '/pdf', name: 'pdf', component: () => import('@/ui/views/PrintView.vue') },
+    { path: '/texte', name: 'texte', component: () => import('#ui/views/EditorView.vue') },
+    { path: '/discours', name: 'discours', component: () => import('#ui/views/DocumentView.vue') },
+    { path: '/pdf', name: 'pdf', component: () => import('#ui/views/PrintView.vue') },
     { path: '/imprimer', redirect: (to) => ({ name: 'pdf', query: to.query }) },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

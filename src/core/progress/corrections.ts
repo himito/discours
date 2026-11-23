@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-import type { WordItem } from '../model'
+import type { WordItem } from '#core/model'
 
 /** Corrected IPA by word key; a correction applies to every occurrence of the word. */
 export type Corrections = Record<string, string>

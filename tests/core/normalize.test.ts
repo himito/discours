@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeWord, parseText } from '@/core/text/normalize'
+import { normalizeWord, parseText } from '#core/text/normalize'
 
 describe('parseText', () => {
   it('splits paragraphs and assigns sections from title lines', () => {

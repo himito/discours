@@ -3,8 +3,8 @@
  *
  * @packageDocumentation
  */
-import type { BestScores, HardWords, WordStats } from '../progress/progress'
-import type { Corrections } from '../progress/corrections'
+import type { BestScores, HardWords, WordStats } from '#core/progress/progress'
+import type { Corrections } from '#core/progress/corrections'
 
 /** Display and voice settings. */
 export interface Settings {

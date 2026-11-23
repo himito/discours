@@ -6,8 +6,8 @@
  * search by hand when there is no entry, and a notice when the dictionary can't be reached.
  */
 import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
-import type { Definition } from '@/core/dictionary/Dictionary'
-import { usePorts } from '@/ui/ports'
+import type { Definition } from '#core/dictionary/Dictionary'
+import { usePorts } from '#ui/ports'
 
 /** Component props. */
 const props = defineProps<{

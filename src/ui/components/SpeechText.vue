@@ -7,10 +7,10 @@
  * the whole speech screen.
  */
 import { computed } from 'vue'
-import type { Item, WordItem } from '@/core/model'
-import type { WordVerdict } from '@/core/reading/session'
-import { displayUnits } from '@/core/speech/units'
-import { useDiscoursStore } from '@/ui/stores/discours'
+import type { Item, WordItem } from '#core/model'
+import type { WordVerdict } from '#core/reading/session'
+import { displayUnits } from '#core/speech/units'
+import { useDiscoursStore } from '#ui/stores/discours'
 
 /** Component props. */
 const props = defineProps<{

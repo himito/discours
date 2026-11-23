@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-import { countWords, type AnalyzedParagraph } from '../model'
+import { countWords, type AnalyzedParagraph } from '#core/model'
 
 /** Reading speed aimed at, in words per minute. */
 export const TARGET_WPM = 135

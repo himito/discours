@@ -7,8 +7,8 @@
  * after confirmation.
  */
 import { computed, ref } from 'vue'
-import { hardWordList, missLevel } from '@/core/progress/progress'
-import { useDiscoursStore } from '@/ui/stores/discours'
+import { hardWordList, missLevel } from '#core/progress/progress'
+import { useDiscoursStore } from '#ui/stores/discours'
 
 /** `open`: a word was chosen, with its key. */
 const emit = defineEmits<{ open: [key: string] }>()

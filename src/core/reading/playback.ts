@@ -3,9 +3,9 @@
  *
  * @packageDocumentation
  */
-import type { AnalyzedParagraph } from '../model'
+import type { AnalyzedParagraph } from '#core/model'
 import type { SpeechSynthesizer } from './SpeechSynthesizer'
-import { spokenIndex, spokenText } from '../speech/units'
+import { spokenIndex, spokenText } from '#core/speech/units'
 
 /** Silences between paragraphs, in milliseconds. */
 export interface Gaps {

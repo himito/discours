@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ipaOf, withCorrection } from '@/core/progress/corrections'
+import { ipaOf, withCorrection } from '#core/progress/corrections'
 import {
   afterSuccess,
   hardWordList,
@@ -9,7 +9,7 @@ import {
   withAttempt,
   withMissed,
   withScore,
-} from '@/core/progress/progress'
+} from '#core/progress/progress'
 import { paragraph, word } from './fixtures'
 
 describe('progress', () => {

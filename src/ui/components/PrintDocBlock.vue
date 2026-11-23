@@ -5,8 +5,8 @@
  * @remarks The print screen measures blocks one by one to cut the document into A4 pages, so each
  * block keeps its spacing inside itself (padding, not margins).
  */
-import PrintParagraph from '@/ui/components/PrintParagraph.vue'
-import type { AnalyzedParagraph } from '@/core/model'
+import PrintParagraph from '#ui/components/PrintParagraph.vue'
+import type { AnalyzedParagraph } from '#core/model'
 
 /** A block of the document. */
 export type DocBlock =

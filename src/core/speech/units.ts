@@ -6,7 +6,7 @@
  *
  * @packageDocumentation
  */
-import type { Item, WordItem } from '../model'
+import type { Item, WordItem } from '#core/model'
 
 /** A word with the punctuation around it, or a reading mark. */
 export type Unit =

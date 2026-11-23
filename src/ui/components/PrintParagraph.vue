@@ -7,9 +7,9 @@
  * hidden, liaisons are shown after the word itself.
  */
 import { computed } from 'vue'
-import type { AnalyzedParagraph } from '@/core/model'
-import { displayUnits } from '@/core/speech/units'
-import { useDiscoursStore } from '@/ui/stores/discours'
+import type { AnalyzedParagraph } from '#core/model'
+import { displayUnits } from '#core/speech/units'
+import { useDiscoursStore } from '#ui/stores/discours'
 
 /** Component props. */
 const props = defineProps<{

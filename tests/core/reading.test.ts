@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { align, isWordRecognized, sameWord } from '@/core/reading/align'
+import { align, isWordRecognized, sameWord } from '#core/reading/align'
 import {
   followReading,
   readingTarget,
   scoreReading,
   wordsPerMinute,
   wordVerdict,
-} from '@/core/reading/session'
+} from '#core/reading/session'
 import { paragraph } from './fixtures'
 
 const speech = [

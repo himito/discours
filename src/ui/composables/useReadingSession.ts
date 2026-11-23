@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { computed, onScopeDispose, ref, shallowRef, type Ref } from 'vue'
-import type { RecognitionError, RecognitionSession } from '@/core/reading/SpeechRecognizer'
+import type { RecognitionError, RecognitionSession } from '#core/reading/SpeechRecognizer'
 import {
   followReading,
   readingTarget,
@@ -14,9 +14,9 @@ import {
   type ReadingScore,
   type ReadingTarget,
   type WordVerdict,
-} from '@/core/reading/session'
-import { usePorts } from '@/ui/ports'
-import { useDiscoursStore } from '@/ui/stores/discours'
+} from '#core/reading/session'
+import { usePorts } from '#ui/ports'
+import { useDiscoursStore } from '#ui/stores/discours'
 
 /** Time left to the recognizer to deliver its last result after stopping, in ms. */
 const LAST_RESULT_DELAY = 500

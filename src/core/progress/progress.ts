@@ -6,8 +6,8 @@
  *
  * @packageDocumentation
  */
-import { isWord, type AnalyzedParagraph, type WordItem } from '../model'
-import { wordKey } from '../text/words'
+import { isWord, type AnalyzedParagraph, type WordItem } from '#core/model'
+import { wordKey } from '#core/text/words'
 
 /** Best reading score per paragraph id, in %. */
 export type BestScores = Record<string, number>

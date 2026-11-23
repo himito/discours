@@ -7,15 +7,15 @@
  *
  * @packageDocumentation
  */
-import './ui/assets/main.css'
+import '#ui/assets/main.css'
 
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
-import { createBrowserPorts } from './adapters'
-import App from './ui/App.vue'
-import { providePorts } from './ui/ports'
-import router from './ui/router'
+import { createBrowserPorts } from '#adapters'
+import App from '#ui/App.vue'
+import { providePorts } from '#ui/ports'
+import router from '#ui/router'
 
 const ports = createBrowserPorts()
 // Loads the phonetic engine in the background, so the first analysis doesn't wait for it.

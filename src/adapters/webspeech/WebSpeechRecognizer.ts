@@ -11,7 +11,7 @@ import {
   type SpeechRecognizer,
   type TranscriptListener,
   type UtteranceRecognition,
-} from '@/core/reading/SpeechRecognizer'
+} from '#core/reading/SpeechRecognizer'
 
 /* Minimal typings: the Web Speech recognition API is not in TypeScript's DOM lib. */
 interface RecognitionAlternative {

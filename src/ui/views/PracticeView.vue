@@ -14,17 +14,17 @@
  * panel is open.
  */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import { countWords, type WordItem } from '@/core/model'
-import { overview } from '@/core/progress/progress'
-import { groupBySection, locate, readingSeconds, TARGET_WPM } from '@/core/speech/sections'
-import logoMark from '@/ui/assets/logo-mark.svg'
-import HardWordsPanel from '@/ui/components/HardWordsPanel.vue'
-import SpeechText from '@/ui/components/SpeechText.vue'
-import WordPractice from '@/ui/components/WordPractice.vue'
-import { useModelVoice, useVoices } from '@/ui/composables/useModelVoice'
-import { useReadingSession } from '@/ui/composables/useReadingSession'
-import { clock, recognitionMessage, scoreClass, sectionTitle } from '@/ui/format'
-import { useDiscoursStore } from '@/ui/stores/discours'
+import { countWords, type WordItem } from '#core/model'
+import { overview } from '#core/progress/progress'
+import { groupBySection, locate, readingSeconds, TARGET_WPM } from '#core/speech/sections'
+import logoMark from '#ui/assets/logo-mark.svg'
+import HardWordsPanel from '#ui/components/HardWordsPanel.vue'
+import SpeechText from '#ui/components/SpeechText.vue'
+import WordPractice from '#ui/components/WordPractice.vue'
+import { useModelVoice, useVoices } from '#ui/composables/useModelVoice'
+import { useReadingSession } from '#ui/composables/useReadingSession'
+import { clock, recognitionMessage, scoreClass, sectionTitle } from '#ui/format'
+import { useDiscoursStore } from '#ui/stores/discours'
 
 const store = useDiscoursStore()
 const voice = useModelVoice()

@@ -7,8 +7,8 @@
  *
  * @packageDocumentation
  */
-import type { Item } from '../model'
-import { matchKeys, transcriptKeys } from '../text/words'
+import type { Item } from '#core/model'
+import { matchKeys, transcriptKeys } from '#core/text/words'
 
 /** Removes the endings recognizers often get wrong (plural, feminine, verb endings). */
 const stem = (w: string) => w.replace(/s$|x$|e$|es$|ent$/, '')

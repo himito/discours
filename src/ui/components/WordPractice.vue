@@ -14,16 +14,16 @@
  * Emits `close` on × or Escape. Exposes `repeat()` so the parent can bind it to the space bar.
  */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
-import type { WordItem } from '@/core/model'
-import { RecognitionFailure, type UtteranceRecognition } from '@/core/reading/SpeechRecognizer'
-import { isWordRecognized } from '@/core/reading/align'
-import { bareWord, isTechnicalTerm, wordKey } from '@/core/text/words'
-import IpaEditor from '@/ui/components/IpaEditor.vue'
-import WordDefinition from '@/ui/components/WordDefinition.vue'
-import { useModelVoice } from '@/ui/composables/useModelVoice'
-import { recognitionMessage } from '@/ui/format'
-import { usePorts } from '@/ui/ports'
-import { useDiscoursStore } from '@/ui/stores/discours'
+import type { WordItem } from '#core/model'
+import { RecognitionFailure, type UtteranceRecognition } from '#core/reading/SpeechRecognizer'
+import { isWordRecognized } from '#core/reading/align'
+import { bareWord, isTechnicalTerm, wordKey } from '#core/text/words'
+import IpaEditor from '#ui/components/IpaEditor.vue'
+import WordDefinition from '#ui/components/WordDefinition.vue'
+import { useModelVoice } from '#ui/composables/useModelVoice'
+import { recognitionMessage } from '#ui/format'
+import { usePorts } from '#ui/ports'
+import { useDiscoursStore } from '#ui/stores/discours'
 
 /** Component props. */
 const props = defineProps<{

@@ -18,10 +18,10 @@
  *
  * @packageDocumentation
  */
-import type { AnalyzedParagraph, Item, WordItem } from '../model'
+import type { AnalyzedParagraph, Item, WordItem } from '#core/model'
 import type { PhonemeTrace, Phonemizer } from './Phonemizer'
-import { normalizeSentence, normalizeWord, parseText, type Sentence } from '../text/normalize'
-import { isTechnicalTerm, matchKeys, textId, wordKey } from '../text/words'
+import { normalizeSentence, normalizeWord, parseText, type Sentence } from '#core/text/normalize'
+import { isTechnicalTerm, matchKeys, textId, wordKey } from '#core/text/words'
 import { lexiconIpa } from './lexicon'
 import { cleanPhoneme, fixGlides, fixPalatal, isVowel, syllabify } from './syllables'
 

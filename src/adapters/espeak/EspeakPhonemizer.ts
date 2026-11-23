@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-import type { PhonemeTrace, Phonemizer } from '@/core/phonetics/Phonemizer'
+import type { PhonemeTrace, Phonemizer } from '#core/phonetics/Phonemizer'
 import type { PhonemizeRequest, PhonemizeResponse } from './engine'
 
 /**

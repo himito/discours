@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-import type { StateStorage } from '@/core/state/StateStorage'
+import type { StateStorage } from '#core/state/StateStorage'
 
 /**
  * Saves a state as JSON under one `localStorage` key.

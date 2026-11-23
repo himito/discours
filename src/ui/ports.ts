@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 import { inject, type App, type InjectionKey } from 'vue'
-import type { Ports } from '@/core/ports'
+import type { Ports } from '#core/ports'
 
 /** The ports the UI works with: pages are DOM elements. */
 export type UiPorts = Ports<HTMLElement>

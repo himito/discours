@@ -13,7 +13,7 @@
  *
  * @packageDocumentation
  */
-import { isWord, type AnalyzedParagraph, type Item, type WordItem } from '../model'
+import { isWord, type AnalyzedParagraph, type Item, type WordItem } from '#core/model'
 import { align, type Alignment } from './align'
 
 /** The words a reading is checked against: paragraphs `from` to `to`, concatenated. */
