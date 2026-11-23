@@ -1,9 +1,19 @@
 {
   "name": "discours",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "license": "GPL-3.0-or-later",
   "type": "module",
+  "imports": {
+    "#core/*": "./src/core/*.ts",
+    "#adapters": "./src/adapters/index.ts",
+    "#adapters/*": "./src/adapters/*.ts",
+    "#ui/router": "./src/ui/router/index.ts",
+    "#ui/*.vue": "./src/ui/*.vue",
+    "#ui/*.css": "./src/ui/*.css",
+    "#ui/*.svg": "./src/ui/*.svg",
+    "#ui/*": "./src/ui/*.ts"
+  },
   "scripts": {
     "espeak": "node scripts/build-espeak-fr.mjs",
     "predev": "npm run espeak",

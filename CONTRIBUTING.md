@@ -38,9 +38,11 @@ section of the README first. In short:
 | `src/adapters/` | Browser implementations of the ports                                                     | `src/core`, browser APIs, libraries |
 | `src/ui/`       | Vue: screens, components, composables, the Pinia store                                   | `src/core`, Vue                     |
 | `src/main.ts`   | The composition root: creates adapters, starts the app                                   | everything                          |
-| `tests/`        | Unit tests (Vitest), mirroring `src/`                                                    | `src`, through `@/`                 |
+| `tests/`        | Unit tests (Vitest), mirroring `src/`                                                    | `src`, through the aliases          |
 
-ESLint enforces the import rules: `npm run lint` fails if the core imports Vue, the UI or an
+Import across folders with the layer aliases, `#core/…`, `#adapters/…` and `#ui/…` (for example
+`import { wordKey } from '#core/text/words'`), declared in the `imports` field of `package.json`; `./` is only for a file in the same folder, and
+`../` is not allowed. ESLint enforces the import rules: `npm run lint` fails if the core imports Vue, the UI or an
 adapter, if an adapter imports the UI, or if the UI imports an adapter.
 
 Some rules of thumb:

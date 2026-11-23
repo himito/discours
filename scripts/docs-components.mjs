@@ -37,7 +37,7 @@ const PAGE_HEADER = [
 ]
 
 /** A route of the router: its path and the view it shows (a static or a lazy import). */
-const ROUTE = /path:\s*'([^']+)'[^}]*?(?:component:\s*(\w+)|import\('@\/ui\/views\/(\w+)\.vue'\))/g
+const ROUTE = /path:\s*'([^']+)'[^}]*?(?:component:\s*(\w+)|import\('#ui\/views\/(\w+)\.vue'\))/g
 const SCRIPT_SETUP = /<script setup[^>]*>([\s\S]*?)<\/script>/
 const LEADING_COMMENT = /^\s*(\/\*\*[\s\S]*?\*\/)/
 const PROPS = /defineProps<\{([\s\S]*?)\}>\(\)/

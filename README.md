@@ -192,6 +192,11 @@ flowchart LR
   ports into reactive state. The UI gets the ports with `usePorts()`, never an adapter.
 - **`src/main.ts`**: the composition root, the only place that sees both adapters and UI.
 
+Each layer has an import alias, declared once in the `imports` field of `package.json` (Node's
+subpath imports, which TypeScript, Vite, Vitest and TypeDoc all read): `#core/…`, `#adapters/…`
+and `#ui/…`. Imports that leave their folder use an alias, never
+`../`; `./` is only for files in the same folder.
+
 Dependencies point inward: `core` imports nothing from `ui` or `adapters`, adapters don't import
 the UI, and `ui` imports no adapter. ESLint enforces it (`no-restricted-imports` in
 `eslint.config.ts`).
