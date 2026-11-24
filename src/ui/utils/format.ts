@@ -28,7 +28,7 @@ export const sectionTitle = (title: string): string => title || 'Discours'
 export const paragraphLabel = (section: Pick<Section, 'title'>, number: number): string =>
   `${sectionTitle(section.title)} § ${number}`
 
-/** Colour class of a score: high (90 % or more), medium (70 % or more) or low. */
+/** Colour class of a score, styled in `assets/main.css`: high (90 % or more), medium (70 % or more) or low. */
 export const scoreClass = (percent: number): 's-hi' | 's-mid' | 's-lo' =>
   percent >= 90 ? 's-hi' : percent >= 70 ? 's-mid' : 's-lo'
 

@@ -454,15 +454,6 @@ h1 {
 .score {
   font-size: 11px;
 }
-.s-hi {
-  color: var(--ok);
-}
-.s-mid {
-  color: #8a5a00;
-}
-.s-lo {
-  color: var(--bad);
-}
 
 @media (max-width: 760px) {
   .meta {

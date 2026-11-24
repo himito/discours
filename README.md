@@ -344,7 +344,11 @@ src/
     views/                PracticeView (/), DocumentView (/discours), EditorView (/texte),
                           PrintView (/pdf)
     components/           SpeechText, WordPractice, IpaEditor, WordDefinition,
-                          HardWordsPanel, PrintParagraph, PrintDocBlock
+                          HardWordsPanel, PrintParagraph, PrintDocBlock;
+                          the training screen's parts: ParagraphSidebar
+                          (OverallProgress, ParagraphList), MobileHeader,
+                          PracticeSettings (ToggleSwitch), ReadingControls,
+                          ReadingSummary, HeardTranscript, PracticeLegend
     composables/          usePorts / providePorts, useModelVoice, useVoices,
                           useReadingSession
     stores/discours.ts    Pinia store: reactive state over the modules and ports

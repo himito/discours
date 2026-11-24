@@ -6,8 +6,9 @@
  * page shows:
  *
  * - the TSDoc comment at the top of `<script setup>`;
- * - its props, with their types and comments (`defineProps<{ … }>()`);
- * - its events (`defineEmits`) and exposed methods (`defineExpose`);
+ * - its props, with their types and comments: from `defineProps<{ … }>()`, or from the named
+ *   type in `defineProps<Name>()`, looked up in `src/ui/types/` (with the types it extends);
+ * - its `v-model`s (`defineModel`), events (`defineEmits`) and exposed methods (`defineExpose`);
  * - for screens, the route that shows them (from `src/ui/router/index.ts`).
  */
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
@@ -17,6 +18,8 @@ import { fileURLToPath } from 'node:url'
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const OUTPUT = 'docs/components.md'
 const ROUTER = 'src/ui/router/index.ts'
+/** Where the components' named prop and event types are declared. */
+const TYPES_DIR = 'src/ui/types'
 
 /** The page's sections: which `.vue` files go under which title. */
 const GROUPS = [
@@ -40,9 +43,20 @@ const PAGE_HEADER = [
 const ROUTE = /path:\s*'([^']+)'[^}]*?(?:component:\s*(\w+)|import\('#ui\/views\/(\w+)\.vue'\))/g
 const SCRIPT_SETUP = /<script setup[^>]*>([\s\S]*?)<\/script>/
 const LEADING_COMMENT = /^\s*(\/\*\*[\s\S]*?\*\/)/
-const PROPS = /defineProps<\{([\s\S]*?)\}>\(\)/
-const EMITS = /(\/\*\*[\s\S]*?\*\/)?\s*const \w+ = defineEmits<\{([\s\S]*?)\}>\(\)/
+/** A doc comment: `/**`, then anything but its end, then `*\/`. */
+const DOC = String.raw`\/\*\*(?:(?!\*\/)[\s\S])*\*\/`
+/** The type of a macro: an inline `{ … }` literal, or the name of a type. */
+const MACRO_TYPE = String.raw`(?:\{([\s\S]*?)\}|(\w+))`
+const PROPS = new RegExp(String.raw`defineProps<${MACRO_TYPE}>\(\)`)
+const EMITS = new RegExp(String.raw`(${DOC})?\s*const \w+ = defineEmits<${MACRO_TYPE}>\(\)`)
+/** `const x = defineModel<T>('name', …)`, the name being optional (`modelValue`). */
+const MODEL = new RegExp(
+  String.raw`(${DOC})?\s*const \w+ = defineModel<([^>]+)>\(\s*(?:'(\w+)'\s*,?\s*)?(\{[^}]*\})?`,
+  'g',
+)
 const EXPOSE = /defineExpose\(\{([^}]*)\}\)/
+/** `export interface Name extends A, B { … }`, closed by a `}` at the start of a line. */
+const INTERFACE = /export interface (\w+)(?:\s+extends\s+([\w\s,]+?))?\s*\{([\s\S]*?)\n\}/g
 /** A member of a type literal, with its optional doc comment: `/** … *\/ name?: type`. */
 const TYPE_MEMBER = /(\/\*\*[\s\S]*?\*\/\s*)?(\w+)(\?)?:\s*([^\n]+)/g
 
@@ -61,6 +75,7 @@ const TYPE_MEMBER = /(\/\*\*[\s\S]*?\*\/\s*)?(\w+)(\?)?:\s*([^\n]+)/g
  *   route: string | undefined,
  *   description: string,
  *   props: Member[] | null,
+ *   models: Member[] | null,
  *   events: { members: Member[], doc: string } | null,
  *   exposed: { name: string, doc: string }[] | null,
  * }} ComponentDoc
@@ -70,10 +85,11 @@ main()
 
 function main() {
   const routes = readRoutes()
+  const types = readInterfaces()
   const sections = GROUPS.map((group) => ({
     title: group.title,
     components: vueFilesIn(group).map((file) =>
-      parseComponent(file, routes.get(basename(file, '.vue'))),
+      parseComponent(file, routes.get(basename(file, '.vue')), types),
     ),
   }))
     .filter((section) => section.components.length)
@@ -93,6 +109,61 @@ function readRoutes() {
   )
 }
 
+/**
+ * The interfaces declared in {@link TYPES_DIR}, by name.
+ *
+ * @returns {Map<string, { body: string, parents: string[] }>}
+ */
+function readInterfaces() {
+  const interfaces = new Map()
+  for (const name of readdirSync(resolve(PROJECT_ROOT, TYPES_DIR)).filter((n) => n.endsWith('.ts')))
+    for (const [, type, parents, body] of read(join(TYPES_DIR, name)).matchAll(INTERFACE))
+      interfaces.set(type, {
+        body,
+        parents: parents ? parents.split(',').map((p) => p.trim()) : [],
+      })
+  return interfaces
+}
+
+/**
+ * The members of a macro's type: its inline literal, or the named interface and those it extends.
+ *
+ * @param {RegExpMatchArray} match - A match of {@link MACRO_TYPE}, at `offset`.
+ * @returns {Member[]}
+ */
+function macroMembers(match, offset, types) {
+  const [literal, name] = [match[offset], match[offset + 1]]
+  return literal !== undefined ? typeMembers(literal) : interfaceMembers(name, types)
+}
+
+/**
+ * The members of a named interface, those of the interfaces it extends first.
+ *
+ * @returns {Member[]}
+ */
+function interfaceMembers(name, types) {
+  const type = types.get(name)
+  if (!type) throw new Error(`${name} is not declared in ${TYPES_DIR}`)
+  return [
+    ...type.parents.flatMap((parent) => interfaceMembers(parent, types)),
+    ...typeMembers(type.body),
+  ]
+}
+
+/**
+ * The component's `v-model`s.
+ *
+ * @returns {Member[]}
+ */
+function models(script) {
+  return [...script.matchAll(MODEL)].map(([, comment, type, name, options]) => ({
+    name: name ?? 'modelValue',
+    optional: !/required:\s*true/.test(options ?? ''),
+    type: type.trim(),
+    doc: comment ? commentText(comment) : '',
+  }))
+}
+
 /** The `.vue` files of a group, sorted, as paths relative to the project root. */
 function vueFilesIn({ dir, only }) {
   return readdirSync(resolve(PROJECT_ROOT, dir))
@@ -106,22 +177,25 @@ function vueFilesIn({ dir, only }) {
  *
  * @param {string} file - Path relative to the project root.
  * @param {string | undefined} route - Path of the route showing it, for screens.
+ * @param {Map<string, { body: string, parents: string[] }>} types - The named prop and event types.
  * @returns {ComponentDoc}
  */
-function parseComponent(file, route) {
+function parseComponent(file, route, types) {
   const script = read(file).match(SCRIPT_SETUP)?.[1] ?? ''
   const head = script.match(LEADING_COMMENT)
   const props = script.match(PROPS)
   const emits = script.match(EMITS)
   const expose = script.match(EXPOSE)
+  const modelMembers = models(script)
   return {
     name: basename(file, '.vue'),
     file,
     route,
     description: head ? tidy(commentText(head[1])) : '',
-    props: props ? typeMembers(props[1]) : null,
+    props: props ? macroMembers(props, 1, types) : null,
+    models: modelMembers.length ? modelMembers : null,
     events: emits
-      ? { members: typeMembers(emits[2]), doc: emits[1] ? tidy(commentText(emits[1])) : '' }
+      ? { members: macroMembers(emits, 2, types), doc: emits[1] ? tidy(commentText(emits[1])) : '' }
       : null,
     exposed: expose ? exposedFunctions(expose[1], script) : null,
   }
@@ -148,7 +222,7 @@ function exposedFunctions(list, script) {
     .map((name) => name.trim())
     .filter(Boolean)
     .map((name) => {
-      const declaration = new RegExp(`(/\\*\\*[\\s\\S]*?\\*/)\\s*(?:async\\s+)?function ${name}\\b`)
+      const declaration = new RegExp(String.raw`(${DOC})\s*(?:async\s+)?function ${name}\b`)
       const comment = script.match(declaration)?.[1]
       return { name, doc: comment ? tidy(commentText(comment)) : '' }
     })
@@ -187,6 +261,7 @@ function renderComponent(component) {
   const lines = [`### ${component.name}`, '', where, '']
   if (component.description) lines.push(component.description, '')
   if (component.props) lines.push(...renderProps(component.props))
+  if (component.models) lines.push(...renderModels(component.models))
   if (component.events) lines.push(...renderEvents(component.events))
   if (component.exposed) lines.push(...renderExposed(component.exposed))
   return lines.join('\n')
@@ -202,6 +277,21 @@ function renderProps(props) {
     ...props.map(
       (p) =>
         `| \`${p.name}\`${p.optional ? '?' : ''} | \`${cell(p.type)}\` | ${cell(tidy(p.doc))} |`,
+    ),
+    '',
+  ]
+}
+
+/** @param {Member[]} models */
+function renderModels(models) {
+  return [
+    '**v-model**',
+    '',
+    '| Name | Type | Description |',
+    '| --- | --- | --- |',
+    ...models.map(
+      (m) =>
+        `| \`${m.name}\`${m.optional ? '?' : ''} | \`${cell(m.type)}\` | ${cell(tidy(m.doc))} |`,
     ),
     '',
   ]

@@ -80,6 +80,17 @@ button {
   font-size: 13px;
   text-decoration: underline;
 }
+/* Score colours, from scoreClass() in ui/utils/format. */
+.s-hi {
+  color: var(--ok);
+}
+.s-mid {
+  color: #8a5a00;
+}
+.s-lo {
+  color: var(--bad);
+}
+
 :is(.btn, .link, a, button):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

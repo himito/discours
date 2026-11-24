@@ -58,6 +58,8 @@ Some rules of thumb:
 - **Component props and events** are typed in `src/ui/types/components.ts` (and shared UI types
   in `src/ui/types/`), not inline in the `.vue` file, so a parent and its child use the same
   types: `defineProps<SpeechTextProps>()`, `defineEmits<SpeechTextEmits>()`.
+- **A screen growing large?** Split it into components that take props and emit events; the
+  screen keeps the state (store, composables) and passes it down, as `PracticeView` does.
 - **A value that may be absent** is typed `Nullable<T>` (from `#core/types`), not `T | null`.
 - **Text the user sees** is in French; code, comments and documentation are in English.
 
