@@ -8,7 +8,7 @@
  */
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { SAMPLE_TEXT } from '#ui/sampleText'
+import { SAMPLE_TEXT } from '#ui/content/sampleText'
 import { useDiscoursStore } from '#ui/stores/discours'
 
 const store = useDiscoursStore()

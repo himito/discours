@@ -345,18 +345,20 @@ src/
     storage/              LocalStorageStateStorage
     pdf/                  HtmlToImageRasterizer
   ui/                     Vue
-    ports.ts              providePorts / usePorts
-    stores/discours.ts    Pinia store: reactive state over the modules and ports
-    composables/          useModelVoice, useVoices, useReadingSession
     views/                PracticeView (/), DocumentView (/discours), EditorView (/texte),
                           PrintView (/pdf)
     components/           SpeechText, WordPractice, IpaEditor, WordDefinition,
                           HardWordsPanel, PrintParagraph, PrintDocBlock
+    composables/          usePorts / providePorts, useModelVoice, useVoices,
+                          useReadingSession
+    stores/discours.ts    Pinia store: reactive state over the modules and ports
+    utils/                format (durations, labels, messages in French), download
+    content/              the example speech
     router/, assets/      routes, CSS, logo
-    format.ts             durations, labels, messages (French)
 public/espeak/            generated French data package, git-ignored
 tests/
   core/                   unit tests of the core (Vitest), with fake adapters
+  adapters/               adapter tests: fakes of the browser APIs, real eSpeak
 ```
 
 Every module, exported function and type is documented with

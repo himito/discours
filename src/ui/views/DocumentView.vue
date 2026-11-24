@@ -26,7 +26,7 @@ import SpeechText from '#ui/components/SpeechText.vue'
 import WordPractice from '#ui/components/WordPractice.vue'
 import { useModelVoice } from '#ui/composables/useModelVoice'
 import { useReadingSession } from '#ui/composables/useReadingSession'
-import { clock, paragraphLabel, recognitionMessage, scoreClass } from '#ui/format'
+import { clock, paragraphLabel, recognitionMessage, scoreClass } from '#ui/utils/format'
 import { useDiscoursStore } from '#ui/stores/discours'
 import type { Nullable } from '#core/types'
 

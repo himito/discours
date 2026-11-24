@@ -7,7 +7,7 @@
  */
 import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import type { Definition } from '#core/dictionary/Dictionary'
-import { usePorts } from '#ui/ports'
+import { usePorts } from '#ui/composables/usePorts'
 import type { Nullable } from '#core/types'
 
 /** Component props. */

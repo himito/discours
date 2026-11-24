@@ -16,7 +16,7 @@ import {
   type ScoringScope,
   type WordVerdict,
 } from '#core/reading/session'
-import { usePorts } from '#ui/ports'
+import { usePorts } from '#ui/composables/usePorts'
 import { useDiscoursStore } from '#ui/stores/discours'
 import type { Nullable } from '#core/types'
 

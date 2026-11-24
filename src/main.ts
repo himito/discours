@@ -14,7 +14,7 @@ import { createApp } from 'vue'
 
 import { createBrowserPorts } from '#adapters'
 import App from '#ui/App.vue'
-import { providePorts } from '#ui/ports'
+import { providePorts } from '#ui/composables/usePorts'
 import router from '#ui/router'
 
 const ports = createBrowserPorts()

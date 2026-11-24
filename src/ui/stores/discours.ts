@@ -26,8 +26,8 @@ import {
 } from '#core/progress/progress'
 import type { ReadingScore } from '#core/reading/session'
 import { DEFAULT_SETTINGS, type SavedState } from '#core/state/state'
-import { usePorts } from '#ui/ports'
-import { SAMPLE_TEXT } from '#ui/sampleText'
+import { usePorts } from '#ui/composables/usePorts'
+import { SAMPLE_TEXT } from '#ui/content/sampleText'
 import type { Nullable } from '#core/types'
 
 /** State of the analysis. */

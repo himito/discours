@@ -23,7 +23,7 @@ import SpeechText from '#ui/components/SpeechText.vue'
 import WordPractice from '#ui/components/WordPractice.vue'
 import { useModelVoice, useVoices } from '#ui/composables/useModelVoice'
 import { useReadingSession } from '#ui/composables/useReadingSession'
-import { clock, recognitionMessage, scoreClass, sectionTitle } from '#ui/format'
+import { clock, recognitionMessage, scoreClass, sectionTitle } from '#ui/utils/format'
 import { useDiscoursStore } from '#ui/stores/discours'
 import type { Nullable } from '#core/types'
 
