@@ -4,6 +4,9 @@ Thank you for helping. This guide explains how to set up the project, how the co
 and how it works, and what a change needs before it can be merged. To run the app and try it, see
 the [README](README.md) first.
 
+The project lives on [GitLab](https://depot.lipn.univ-paris13.fr/teaching-apps/discours): issues and merge requests go there. The GitHub repository is a
+read-only mirror (see [The GitHub mirror](#the-github-mirror)).
+
 ## Contents
 
 - [Getting set up](#getting-set-up)
@@ -14,7 +17,8 @@ the [README](README.md) first.
 - [Checks before you push](#checks-before-you-push)
 - [Development notes](#development-notes)
 - [Common tasks](#common-tasks)
-- [Commits and pull requests](#commits-and-pull-requests)
+- [Commits and merge requests](#commits-and-merge-requests)
+- [The GitHub mirror](#the-github-mirror)
 - [Reporting a problem](#reporting-a-problem)
 - [Licence of contributions](#licence-of-contributions)
 
@@ -134,6 +138,7 @@ it in `createBrowserPorts()`. Nothing else changes. Tests use the same mechanism
 ## Project structure
 
 ```text
+.github/                  the GitHub mirror only: redirection to GitLab
 scripts/
   build-espeak-fr.mjs     French-only eSpeak-NG bundle (data trimming + module patch)
   deploy.sh               build for a sub-path and copy into a folder of apps
@@ -320,9 +325,12 @@ IPA corrections. Scores are tied to the paragraph text: editing a paragraph rese
 
 `scripts/deploy.sh` builds with `BASE_PATH` (default `/apps/discours/`, read by `vite.config.ts`),
 syncs `dist/` into `<folder>/discours/` with `rsync --delete`, and writes an `.htaccess` that
-rewrites inner routes to `index.html` on Apache. On static hosts without rewrites (GitHub Pages),
-`404.html` stores the requested path in `sessionStorage` (`spa-redirect`) and redirects to the
-app; the first script in `index.html` restores it.
+rewrites inner routes to `index.html` on Apache.
+
+On static hosts without rewrites, unknown paths must get the app too: copy `index.html` to
+`404.html`. Alternatively, a `404.html` can store the requested path in
+`sessionStorage` (`spa-redirect`) and redirect to the app's root: the first script in
+`index.html` restores the path.
 
 ## Making a change
 
@@ -391,17 +399,29 @@ columns). `npm run docs` warns about any undocumented export.
 - **Upgrade eSpeak-NG:** update `@echogarden/espeak-ng-emscripten`, then run `npm run espeak`.
   The script fails loudly if the upstream module layout changed.
 
-## Commits and pull requests
+## Commits and merge requests
+
+Open merge requests on [GitLab](https://depot.lipn.univ-paris13.fr/teaching-apps/discours/-/merge_requests).
 
 - Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org) style
   used in the history: `feat: …`, `fix: …`, `refactor: …`, `docs: …`, `test: …`, `chore: …`.
-- Keep a pull request to one topic. Describe what changes for the user, and how you tested it
+- Keep a merge request to one topic. Describe what changes for the user, and how you tested it
   (browser, screens, speech recognition or not).
 - Include a screenshot for visual changes.
 
+## The GitHub mirror
+
+GitLab pushes `main` to GitHub after every change (a push mirror). Nothing is ever committed on
+GitHub: the mirror would overwrite it. The `.github/` folder, ignored by GitLab, holds what only
+GitHub uses:
+
+- `workflows/redirect-to-gitlab.yml` answers any issue or pull request opened on GitHub with a
+  link to GitLab, and closes it;
+- `ISSUE_TEMPLATE/config.yml` replaces GitHub's issue form with a link to GitLab.
+
 ## Reporting a problem
 
-Open an issue with:
+Open an [issue on GitLab](https://depot.lipn.univ-paris13.fr/teaching-apps/discours/-/issues) with:
 
 - what you did, what you expected and what happened;
 - the browser and system (speech features depend on them);

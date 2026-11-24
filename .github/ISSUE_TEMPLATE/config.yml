@@ -1,0 +1,6 @@
+# GitHub only: this repository is a mirror of the GitLab one, where issues are handled.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a problem or suggest an idea on GitLab
+    url: https://depot.lipn.univ-paris13.fr/teaching-apps/discours/-/issues
+    about: Discours is developed on GitLab. This GitHub repository is a read-only mirror.

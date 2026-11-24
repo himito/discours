@@ -10,6 +10,8 @@ then work on the difficult ones one by one.
 It runs entirely in the browser: no server, no account. Your text and progress stay in your
 browser.
 
+Discours is developed on [GitLab](https://depot.lipn.univ-paris13.fr/teaching-apps/discours); the GitHub repository is a read-only mirror.
+
 <p align="center">
   <img src="docs/images/training-screen.png" width="900"
     alt="The training screen, annotated: (1) overall progress; (2) paragraphs by section, with your best score; (3) links to the whole speech, the text editor and the PDF download; (4) showing the IPA and liaisons; (5) the model voice's speed and voice; (6) the IPA under each word, which can be clicked to practise it; (7) a liaison to make; (8) listening to the model voice; (9) reading aloud, with words turning green or red, then a score; (10) the words you missed, to practise one by one.">
@@ -155,8 +157,8 @@ deploy`). Each deployment removes the files of the previous one. Publishing the 
 you.
 
 Links to inner pages (such as `/apps/discours/texte`) work on Apache, thanks to the `.htaccess`
-the script writes, and on static hosts without rewrite rules, such as GitHub Pages, thanks to a
-`404.html` redirect.
+the script writes. On a static host without rewrite rules, serve the app's `index.html` for
+unknown paths too, for example by copying it to `404.html`.
 
 To host it somewhere else, run `BASE_PATH=/your/path/ npm run build` and copy `dist/`.
 
@@ -179,8 +181,9 @@ To host it somewhere else, run `BASE_PATH=/your/path/ npm run build` and copy `d
 
 ## Contributing
 
-Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains how the code is organized
-and how it works, and what a change needs before it is merged.
+Contributions are welcome, on [GitLab](https://depot.lipn.univ-paris13.fr/teaching-apps/discours): issues and merge requests go there, not to the
+GitHub mirror. [CONTRIBUTING.md](CONTRIBUTING.md) explains how the code is organized and how it
+works, and what a change needs before it is merged.
 
 ## Licence
 

@@ -1,0 +1,47 @@
+# GitHub only: this repository is a read-only mirror of the GitLab one, updated automatically.
+# An issue or pull request opened here would be lost, so it is answered with a link to GitLab
+# and closed. No code from the pull request is checked out or run.
+name: Redirect to GitLab
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  redirect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const gitlab = 'https://depot.lipn.univ-paris13.fr/teaching-apps/discours'
+            const isPullRequest = context.eventName === 'pull_request_target'
+            const where = isPullRequest
+              ? `open a merge request on [GitLab](${gitlab}/-/merge_requests)`
+              : `open an issue on [GitLab](${gitlab}/-/issues)`
+            const body = [
+              'Thank you for your interest in Discours!',
+              '',
+              'This GitHub repository is a read-only mirror: it is overwritten by every update ' +
+                `from GitLab, so nothing can be merged here. Please ${where}.`,
+            ].join('\n')
+            const { owner, repo } = context.repo
+            const number = context.issue.number
+            await github.rest.issues.createComment({ owner, repo, issue_number: number, body })
+            if (isPullRequest) {
+              await github.rest.pulls.update({ owner, repo, pull_number: number, state: 'closed' })
+            } else {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: number,
+                state: 'closed',
+                state_reason: 'not_planned',
+              })
+            }
