@@ -14,7 +14,6 @@
  * Route `/discours`.
  */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import type { WordItem } from '#core/model'
 import {
   groupBySection,
   locate,
@@ -28,6 +27,7 @@ import { useModelVoice } from '#ui/composables/useModelVoice'
 import { useReadingSession } from '#ui/composables/useReadingSession'
 import { clock, paragraphLabel, recognitionMessage, scoreClass } from '#ui/utils/format'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { SelectedWord } from '#ui/types/word'
 import type { Nullable } from '#core/types'
 
 const store = useDiscoursStore()
@@ -127,13 +127,13 @@ const summary = computed(() => {
 // ---------------------------------------------------------------- word panel
 
 /** Word open in the word panel, if any. */
-const practising = shallowRef<Nullable<{ text: string; item: WordItem }>>(null)
+const practising = shallowRef<Nullable<SelectedWord>>(null)
 
 /** Opens the word panel, stopping voice and recognition. */
-function openWord(text: string, item: WordItem) {
+function openWord(word: SelectedWord) {
   voice.stop()
   reading.stop()
-  practising.value = { text, item }
+  practising.value = word
 }
 
 // ---------------------------------------------------------------- keyboard
@@ -280,8 +280,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <WordPractice
       v-if="practising"
       :key="practising.text"
-      :text="practising.text"
-      :item="practising.item"
+      :word="practising"
       @close="practising = null"
     />
   </div>

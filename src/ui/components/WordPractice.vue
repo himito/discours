@@ -14,7 +14,6 @@
  * Emits `close` on × or Escape. Exposes `repeat()` so the parent can bind it to the space bar.
  */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
-import type { WordItem } from '#core/model'
 import { RecognitionFailure, type UtteranceRecognition } from '#core/reading/SpeechRecognizer'
 import { isWordRecognized } from '#core/reading/align'
 import { bareWord, isTechnicalTerm, wordKey } from '#core/text/words'
@@ -24,17 +23,12 @@ import { useModelVoice } from '#ui/composables/useModelVoice'
 import { recognitionMessage } from '#ui/utils/format'
 import { usePorts } from '#ui/composables/usePorts'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { WordPracticeEmits, WordPracticeProps } from '#ui/types/components'
+import type { AttemptVerdict } from '#ui/types/word'
 import type { Nullable } from '#core/types'
 
-/** Component props. */
-const props = defineProps<{
-  /** The word as written (punctuation is stripped for display and speech). */
-  text: string
-  /** The analyzed word, if known: gives its IPA and liaison. */
-  item: Nullable<WordItem>
-}>()
-/** `close`: the panel is closed (× or Escape). */
-const emit = defineEmits<{ close: [] }>()
+const props = defineProps<WordPracticeProps>()
+const emit = defineEmits<WordPracticeEmits>()
 
 /** Rate of "Lentement". */
 const SLOW_RATE = 0.6
@@ -44,12 +38,14 @@ const voice = useModelVoice()
 const { recognizer } = usePorts()
 
 /** The word without surrounding punctuation, as shown and spoken. */
-const word = computed(() => bareWord(props.text))
+const word = computed(() => bareWord(props.word.text))
+/** The analyzed word, if known. */
+const item = computed(() => props.word.item)
 /** Key of the word in the store (corrections, statistics). */
 const key = computed(() => wordKey(word.value))
 /** IPA shown: the user's correction, the analyzed IPA, or `''`. */
 const ipa = computed(() =>
-  props.item ? store.ipaOf(props.item) : (store.overrides[key.value] ?? ''),
+  props.word.item ? store.ipaOf(props.word.item) : (store.overrides[key.value] ?? ''),
 )
 /** Whether the user corrected this word's IPA. */
 const corrected = computed(() => store.overrides[key.value] !== undefined)
@@ -57,7 +53,7 @@ const corrected = computed(() => store.overrides[key.value] !== undefined)
 const stat = computed(() => store.wordStats[key.value])
 /** Whether the word may be in a dictionary (not an acronym or a number). */
 const hasDefinition = computed(
-  () => !props.item?.tech && !isTechnicalTerm(word.value) && /\p{L}{2}/u.test(word.value),
+  () => !props.word.item?.tech && !isTechnicalTerm(word.value) && /\p{L}{2}/u.test(word.value),
 )
 
 // ---------------------------------------------------------------- repeating
@@ -69,7 +65,7 @@ const message = ref(
     : 'Répétition indisponible dans ce navigateur (utilise Chrome ou Edge).',
 )
 /** Result of the last attempt, for its colour. */
-const verdict = ref<'' | 'good' | 'bad'>('')
+const verdict = ref<AttemptVerdict>('')
 /** The recognition in progress, if any. */
 const listening = shallowRef<Nullable<UtteranceRecognition>>(null)
 
@@ -116,7 +112,7 @@ const editing = ref(false)
 
 /** Stores the edited IPA; the analyzed IPA unchanged removes the correction. */
 function saveIpa(value: string) {
-  store.setCorrection(key.value, value, props.item?.ipa)
+  store.setCorrection(key.value, value, props.word.item?.ipa)
   editing.value = false
 }
 

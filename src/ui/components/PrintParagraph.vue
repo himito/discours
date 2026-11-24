@@ -7,23 +7,11 @@
  * hidden, liaisons are shown after the word itself.
  */
 import { computed } from 'vue'
-import type { AnalyzedParagraph } from '#core/model'
+import type { PrintParagraphProps } from '#ui/types/components'
 import { displayUnits } from '#core/speech/units'
 import { useDiscoursStore } from '#ui/stores/discours'
 
-/** Component props. */
-const props = defineProps<{
-  /** The paragraph to show. */
-  paragraph: AnalyzedParagraph
-  /** Number of the paragraph in its section, as in the sidebar. */
-  n: number
-  /** Whether to show the IPA under each word. */
-  ipa: boolean
-  /** Whether to show liaisons and enchaînements. */
-  links: boolean
-  /** Whether to show the reading marks (`/`, `//`, `→`). */
-  marks: boolean
-}>()
+const props = defineProps<PrintParagraphProps>()
 
 const store = useDiscoursStore()
 /** The paragraph as words with punctuation, and reading marks. */

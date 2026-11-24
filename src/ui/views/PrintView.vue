@@ -16,19 +16,19 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import type { AnalyzedParagraph } from '#core/model'
 import { exportPdf } from '#core/print/exportPdf'
 import { pdfFileName } from '#core/print/fileName'
 import { fillPages, pairs, type PageBox } from '#core/print/pagination'
 import { A4_CSS_PIXELS } from '#core/print/paper'
 import { hardWordsIn } from '#core/progress/progress'
 import { groupBySection, readingSeconds, TARGET_WPM, type Section } from '#core/speech/sections'
-import PrintDocBlock, { type DocBlock } from '#ui/components/PrintDocBlock.vue'
+import PrintDocBlock from '#ui/components/PrintDocBlock.vue'
 import PrintParagraph from '#ui/components/PrintParagraph.vue'
 import { saveFile } from '#ui/utils/download'
 import { duration, sectionTitle } from '#ui/utils/format'
 import { usePorts } from '#ui/composables/usePorts'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { Card, DocBlock, ExportProgress, PdfTemplate, TextSize } from '#ui/types/print'
 import type { Nullable } from '#core/types'
 
 const store = useDiscoursStore()
@@ -42,9 +42,9 @@ const HARD_ON_CARD = 8
 // ---------------------------------------------------------------- options
 
 /** Template: cards to cut out, or a document. */
-const layout = ref<'cards' | 'document'>(route.query.modele === 'document' ? 'document' : 'cards')
+const layout = ref<PdfTemplate>(route.query.modele === 'document' ? 'document' : 'cards')
 /** Text size of the templates. */
-const size = ref<'normal' | 'large'>('normal')
+const size = ref<TextSize>('normal')
 /** Section to export (index), or `-1` for the whole speech. */
 const scope = ref(Math.max(-1, Number(route.query.partie ?? 0) - 1))
 /** Whether the IPA is included. */
@@ -101,16 +101,6 @@ function measure(probe: HTMLElement | undefined, box: HTMLElement | undefined) {
 }
 
 // ---------------------------------------------------------------- cards
-
-/** A card: some paragraphs of a section, possibly one part of several. */
-interface Card {
-  section: Section
-  paragraphs: { paragraph: AnalyzedParagraph; number: number }[]
-  /** Number of this card in the section, from 1. */
-  part: number
-  /** Cards the section needs. */
-  parts: number
-}
 
 /** The cards, filled by {@link paginateCards}. */
 const cards = shallowRef<Card[]>([])
@@ -201,7 +191,7 @@ onBeforeUnmount(() => observer?.disconnect())
 /** The preview's pages container. */
 const pages = ref<HTMLElement>()
 /** Pages captured so far while making the PDF, or `null`. */
-const exporting = ref<Nullable<{ done: number; total: number }>>(null)
+const exporting = ref<Nullable<ExportProgress>>(null)
 /** Message shown when the PDF could not be made. */
 const exportError = ref('')
 

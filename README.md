@@ -351,6 +351,7 @@ src/
     composables/          usePorts / providePorts, useModelVoice, useVoices,
                           useReadingSession
     stores/discours.ts    Pinia store: reactive state over the modules and ports
+    types/                shared UI types: component props and events, word panel, PDF
     utils/                format (durations, labels, messages in French), download
     content/              the example speech
     router/, assets/      routes, CSS, logo

@@ -6,26 +6,9 @@
  * block keeps its spacing inside itself (padding, not margins).
  */
 import PrintParagraph from '#ui/components/PrintParagraph.vue'
-import type { AnalyzedParagraph } from '#core/model'
+import type { PrintDocBlockProps } from '#ui/types/components'
 
-/** A block of the document. */
-export type DocBlock =
-  | { kind: 'head'; words: number; duration: string }
-  | { kind: 'section'; number: number; title: string }
-  | { kind: 'para'; paragraph: AnalyzedParagraph; n: number }
-
-defineProps<{
-  /** The block to show. */
-  block: DocBlock
-  /** Whether to show the IPA under each word. */
-  ipa: boolean
-  /** Whether to show liaisons and enchaînements (and their legend). */
-  links: boolean
-  /** Whether to show the reading marks (and their legend). */
-  marks: boolean
-  /** Reading speed shown in the header, in words per minute. */
-  wpm: number
-}>()
+defineProps<PrintDocBlockProps>()
 </script>
 
 <template>

@@ -3,15 +3,15 @@
  * "Mots à travailler": the words missed while reading, most missed first.
  *
  * @remarks Each card shows the word, its IPA, how often it was missed and its practice results.
- * Clicking a card emits `open` with the word's key, for the word panel. The list can be emptied,
+ * Clicking a card emits `open` with the word, for the word panel. The list can be emptied,
  * after confirmation.
  */
 import { computed, ref } from 'vue'
 import { hardWordList, missLevel } from '#core/progress/progress'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { HardWordsPanelEmits } from '#ui/types/components'
 
-/** `open`: a word was chosen, with its key. */
-const emit = defineEmits<{ open: [key: string] }>()
+const emit = defineEmits<HardWordsPanelEmits>()
 
 const store = useDiscoursStore()
 
@@ -22,6 +22,7 @@ const HARD_SHOWN = 12
 const hardWords = computed(() =>
   hardWordList(store.paragraphs, store.hard).map(({ key, missed, item }) => ({
     key,
+    item,
     missed,
     ipa: item ? store.ipaOf(item) : (store.overrides[key] ?? ''),
     stat: store.wordStats[key],
@@ -74,7 +75,12 @@ function clearHard() {
       </p>
       <ul class="cards">
         <li v-for="w in shownHard" :key="w.key">
-          <button type="button" class="card" :class="w.level" @click="emit('open', w.key)">
+          <button
+            type="button"
+            class="card"
+            :class="w.level"
+            @click="emit('open', { text: w.key, item: w.item })"
+          >
             <span class="card-word">{{ w.key }}</span>
             <span v-if="w.ipa" class="card-ipa">/{{ w.ipa }}/</span>
             <span class="card-meta">

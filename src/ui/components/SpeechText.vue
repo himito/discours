@@ -7,24 +7,12 @@
  * the whole speech screen.
  */
 import { computed } from 'vue'
-import type { Item, WordItem } from '#core/model'
-import type { WordVerdict } from '#core/reading/session'
 import { displayUnits } from '#core/speech/units'
+import type { SpeechTextEmits, SpeechTextProps } from '#ui/types/components'
 import { useDiscoursStore } from '#ui/stores/discours'
 
-/** Component props. */
-const props = defineProps<{
-  /** The paragraph's items. */
-  items: Item[]
-  /** Index of the item being spoken, or -1. */
-  sayIndex: number
-  /** How the word at item `index` fared in the reading, for its colour. */
-  verdict: (index: number) => WordVerdict
-  /** Larger type, for a single paragraph. */
-  large?: boolean
-}>()
-/** `word`: a word was clicked or activated with Enter. */
-const emit = defineEmits<{ word: [text: string, item: WordItem] }>()
+const props = defineProps<SpeechTextProps>()
+const emit = defineEmits<SpeechTextEmits>()
 
 const store = useDiscoursStore()
 /** The paragraph as words with punctuation, and reading marks. */
@@ -41,8 +29,8 @@ const units = computed(() => displayUnits(props.items))
         :class="[{ tech: u.item.tech, say: u.index === sayIndex }, verdict(u.index)]"
         role="button"
         tabindex="0"
-        @click="emit('word', u.item.text, u.item)"
-        @keydown.enter="emit('word', u.item.text, u.item)"
+        @click="emit('word', { text: u.item.text, item: u.item })"
+        @keydown.enter="emit('word', { text: u.item.text, item: u.item })"
       >
         <span>{{ u.pre }}{{ u.item.text }}{{ u.post }}</span>
         <span class="ipa">

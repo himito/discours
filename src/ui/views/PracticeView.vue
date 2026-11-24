@@ -14,7 +14,7 @@
  * panel is open.
  */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import { countWords, type WordItem } from '#core/model'
+import { countWords } from '#core/model'
 import { overview } from '#core/progress/progress'
 import { groupBySection, locate, readingSeconds, TARGET_WPM } from '#core/speech/sections'
 import logoMark from '#ui/assets/logo-mark.svg'
@@ -25,6 +25,7 @@ import { useModelVoice, useVoices } from '#ui/composables/useModelVoice'
 import { useReadingSession } from '#ui/composables/useReadingSession'
 import { clock, recognitionMessage, scoreClass, sectionTitle } from '#ui/utils/format'
 import { useDiscoursStore } from '#ui/stores/discours'
+import type { SelectedWord } from '#ui/types/word'
 import type { Nullable } from '#core/types'
 
 const store = useDiscoursStore()
@@ -135,14 +136,14 @@ function stopAll() {
 // ---------------------------------------------------------------- word panel
 
 /** Word open in the word panel, if any. */
-const practising = shallowRef<Nullable<{ text: string; item: Nullable<WordItem> }>>(null)
+const practising = shallowRef<Nullable<SelectedWord>>(null)
 /** The word panel, to trigger "Répéter" with the space bar. */
 const wordPanel = ref<InstanceType<typeof WordPractice>>()
 
 /** Opens the word panel, stopping voice and recognition. */
-function openWord(text: string, item: Nullable<WordItem>) {
+function openWord(word: SelectedWord) {
   stopAll()
-  practising.value = { text, item }
+  practising.value = word
 }
 
 // ---------------------------------------------------------------- keyboard
@@ -435,7 +436,7 @@ onBeforeUnmount(() => {
             </template>
           </div>
 
-          <HardWordsPanel @open="(key) => openWord(key, null)" />
+          <HardWordsPanel @open="openWord" />
         </template>
 
         <div v-else-if="store.status === 'error'" class="msg">
@@ -454,8 +455,7 @@ onBeforeUnmount(() => {
       v-if="practising"
       ref="wordPanel"
       :key="practising.text"
-      :text="practising.text"
-      :item="practising.item"
+      :word="practising"
       @close="practising = null"
     />
   </div>

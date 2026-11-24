@@ -5,14 +5,10 @@
  * @remarks Emits `save` with the new IPA (the parent stores it) or `cancel`.
  */
 import { nextTick, onMounted, ref } from 'vue'
+import type { IpaEditorEmits, IpaEditorProps } from '#ui/types/components'
 
-/** Component props. */
-const props = defineProps<{
-  /** The IPA to start from. */
-  ipa: string
-}>()
-/** `save`: the edited IPA; `cancel`: editing was abandoned. */
-const emit = defineEmits<{ save: [ipa: string]; cancel: [] }>()
+const props = defineProps<IpaEditorProps>()
+const emit = defineEmits<IpaEditorEmits>()
 
 /** IPA symbols of French that are hard to type. */
 const SYMBOLS = ['ə', 'ɛ', 'ɔ', 'ø', 'œ', 'ɑ̃', 'ɔ̃', 'ɛ̃', 'œ̃', 'ʁ', 'ʃ', 'ʒ', 'ɲ', 'ɥ']
