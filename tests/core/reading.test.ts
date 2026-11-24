@@ -72,6 +72,12 @@ describe('reading session', () => {
     expect(score.percent).toBe(100)
   })
 
+  it('still scores the paragraph when nothing was heard, in "all" scope', () => {
+    const score = scoreReading(readingTarget(speech, 0, 0), '', 'all')
+    expect(score.paragraphs).toHaveLength(1)
+    expect(score).toMatchObject({ percent: 0, missed: 4, words: 4 })
+  })
+
   it('scores nothing when nothing was heard, in "reached" scope', () => {
     const target = readingTarget(speech, 0)
     expect(scoreReading(target, 'bla bla', 'reached').paragraphs).toEqual([])

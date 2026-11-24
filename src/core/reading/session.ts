@@ -36,7 +36,15 @@ export interface ReadingTarget {
 /** How a word fared in a reading. `''`: not judged (not reached yet, or a technical term). */
 export type WordVerdict = '' | 'ok' | 'miss'
 
-/** Builds the target for paragraphs `from` to `to` (inclusive) of the speech. */
+/**
+ * Builds the target for paragraphs `from` to `to` (inclusive) of the speech.
+ *
+ * @param speech - The whole analyzed speech.
+ * @param from - Index of the first paragraph to read.
+ * @param to - Index of the last paragraph that can be read; defaults to the end of the speech, and
+ *   is brought back to it if past.
+ * @returns The paragraphs' items concatenated, with the way back from each item to its paragraph.
+ */
 export function readingTarget(
   speech: readonly AnalyzedParagraph[],
   from: number,
@@ -66,7 +74,13 @@ export interface ReadingState {
   heardAnything: boolean
 }
 
-/** Aligns a transcript with the target. */
+/**
+ * Aligns a transcript with the target, to follow a reading as it goes.
+ *
+ * @param target - What is being read.
+ * @param transcript - Everything the recognizer transcribed so far.
+ * @returns Which words were heard, and the paragraph the reader has reached.
+ */
 export function followReading(target: ReadingTarget, transcript: string): ReadingState {
   const alignment = align(target.items, transcript)
   const heardAnything = alignment.lastHit >= 0
@@ -75,11 +89,15 @@ export function followReading(target: ReadingTarget, transcript: string): Readin
 }
 
 /**
- * How a word fared.
+ * How a word fared, for its colour.
  *
+ * @param target - What is being read.
+ * @param state - The transcript aligned with the target (see {@link followReading}).
  * @param paragraph - Index of the word's paragraph in the speech.
  * @param index - Index of the word in its paragraph's items.
  * @param live - `true` while reading: words after the last one heard are not judged yet.
+ * @returns `ok` if understood, `miss` if not, `''` if not judged: not reached yet, outside the
+ *   target, not a word, or a missed technical term.
  */
 export function wordVerdict(
   target: ReadingTarget,
@@ -128,33 +146,92 @@ export interface ReadingScore {
 }
 
 /**
+ * Which paragraphs of a reading are scored.
+ *
+ * - `all`: every paragraph of the target, even those not read: the training screen, where one
+ *   paragraph is read on purpose.
+ * - `reached`: only the paragraphs up to the last word heard: the whole speech screen, where the
+ *   reader stops whenever they like. A reading that heard nothing then scores nothing.
+ */
+export type ScoringScope = 'all' | 'reached'
+
+/**
  * Scores a finished reading.
  *
- * @param scope - Which paragraphs are scored: `all` of the target, or only those `reached` (up to
- *   the last word heard). A reading that heard nothing then scores nothing.
+ * @param target - What was read.
+ * @param transcript - The final transcript of the reading.
+ * @param scope - Which paragraphs are scored.
+ * @returns A score per paragraph scored, and the totals over them.
  */
 export function scoreReading(
   target: ReadingTarget,
   transcript: string,
-  scope: 'all' | 'reached',
+  scope: ScoringScope,
 ): ReadingScore {
   const state = followReading(target, transcript)
-  const last = scope === 'all' ? target.to : state.heardAnything ? state.reached : target.from - 1
-  const paragraphs = target.paragraphs
-    .slice(0, last - target.from + 1)
-    .map((p, k) => scoreParagraph(p, target.from + k, target.offsets[k]!, state.alignment))
+  const scored = target.paragraphs.slice(0, scoredParagraphCount(target, state, scope))
+  // `offsets` has one entry per paragraph of the target, in the same order.
+  const scores = scored.map((paragraph, k) =>
+    scoreParagraph(paragraph, target.from + k, target.offsets[k]!, state.alignment),
+  )
+  return totalScore(scores)
+}
 
-  const sum = (f: (p: ParagraphScore) => number) => paragraphs.reduce((n, p) => n + f(p), 0)
-  const missed = sum((p) => p.missed.length)
-  const counted = sum((p) => p.counted)
+/**
+ * How many paragraphs of the target are scored, counting from the first.
+ *
+ * @param target - What was read.
+ * @param state - The final transcript aligned with the target.
+ * @param scope - Which paragraphs are scored.
+ * @returns All of the target's paragraphs for `all`; for `reached`, those up to the last word
+ *   heard, or none if nothing was heard.
+ */
+function scoredParagraphCount(
+  target: ReadingTarget,
+  state: ReadingState,
+  scope: ScoringScope,
+): number {
+  if (scope === 'all') return target.paragraphs.length
+  return state.heardAnything ? state.reached - target.from + 1 : 0
+}
+
+/**
+ * The score of a whole reading, from the scores of its paragraphs.
+ *
+ * @param paragraphs - Scores of the paragraphs scored, in order.
+ * @returns The paragraphs' scores, with the totals over them.
+ */
+function totalScore(paragraphs: ParagraphScore[]): ReadingScore {
+  const counted = sumOf(paragraphs, (p) => p.counted)
+  const missed = sumOf(paragraphs, (p) => p.missed.length)
   return {
     paragraphs,
     percent: percentage(counted - missed, counted),
-    words: sum((p) => p.words),
+    words: sumOf(paragraphs, (p) => p.words),
     missed,
   }
 }
 
+/**
+ * Adds up a number taken from each item.
+ *
+ * @param items - The items.
+ * @param value - The number to take from an item.
+ * @returns The sum, 0 for no items.
+ */
+function sumOf<T>(items: readonly T[], value: (item: T) => number): number {
+  return items.reduce((total, item) => total + value(item), 0)
+}
+
+/**
+ * Scores one paragraph of a reading.
+ *
+ * @param paragraph - The paragraph.
+ * @param index - Its index in the speech.
+ * @param offset - Index of its first item in the target's items, where the alignment refers.
+ * @param alignment - The final transcript aligned with the target.
+ * @returns Its score, and its missed words (technical terms are never counted as missed).
+ */
 function scoreParagraph(
   paragraph: AnalyzedParagraph,
   index: number,
@@ -180,13 +257,21 @@ function scoreParagraph(
   }
 }
 
-/** `part / total` in whole %, 0 when `total` is 0. */
+/**
+ * A share in whole percent.
+ *
+ * @param part - The part counted.
+ * @param total - The whole.
+ * @returns `part / total` rounded to a whole %, or 0 when `total` is 0.
+ */
 const percentage = (part: number, total: number) => (total ? Math.round((part / total) * 100) : 0)
 
 /**
  * Reading speed, in words per minute.
  *
- * @returns `null` for readings under 2 seconds, too short to say.
+ * @param words - Words read.
+ * @param seconds - Duration of the reading.
+ * @returns The speed, rounded; `null` for readings under 2 seconds, too short to say.
  */
 export function wordsPerMinute(words: number, seconds: number): Nullable<number> {
   return seconds > 2 ? Math.round((words / seconds) * 60) : null

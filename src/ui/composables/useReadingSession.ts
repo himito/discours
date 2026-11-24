@@ -13,6 +13,7 @@ import {
   wordVerdict,
   type ReadingScore,
   type ReadingTarget,
+  type ScoringScope,
   type WordVerdict,
 } from '#core/reading/session'
 import { usePorts } from '#ui/ports'
@@ -63,12 +64,11 @@ export interface ReadingSession {
 /**
  * A reading aloud of paragraphs of the speech.
  *
- * @param scope - Which paragraphs are scored when the reading ends: `all` those started with, or
- *   only those `reached` (see `scoreReading`).
+ * @param scope - Which paragraphs are scored when the reading ends (see {@link ScoringScope}).
  *
  * @remarks The score is recorded in the store. Recognition stops when the component is unmounted.
  */
-export function useReadingSession(scope: 'all' | 'reached'): ReadingSession {
+export function useReadingSession(scope: ScoringScope): ReadingSession {
   const { recognizer } = usePorts()
   const store = useDiscoursStore()
 
