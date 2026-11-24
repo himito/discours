@@ -62,14 +62,10 @@ export interface SectionBlock {
   title: string
 }
 
-/** A paragraph of the document. */
-export interface ParagraphBlock {
+/** A paragraph of the document, with its number in its section. */
+export interface ParagraphBlock extends NumberedParagraph {
   /** Always `'para'`. */
   kind: 'para'
-  /** The paragraph. */
-  paragraph: AnalyzedParagraph
-  /** Number of the paragraph in its section. */
-  n: number
 }
 
 /** A block of the document template, the unit the pages are filled with. */

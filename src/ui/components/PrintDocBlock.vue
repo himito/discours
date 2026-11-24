@@ -33,7 +33,7 @@ defineProps<PrintDocBlockProps>()
   <PrintParagraph
     v-else
     :paragraph="block.paragraph"
-    :n="block.n"
+    :n="block.number"
     :ipa="ipa"
     :links="links"
     :marks="marks"

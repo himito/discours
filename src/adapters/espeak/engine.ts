@@ -10,6 +10,7 @@
  *
  * @packageDocumentation
  */
+import { errorMessage } from '#core/errors'
 import type { PhonemeTrace } from '#core/phonetics/Phonemizer'
 import type { Nullable } from '#core/types'
 import createModule, { type ESpeakEvent, type ESpeakWorker } from './vendor/espeak-ng-fr.js'
@@ -135,6 +136,6 @@ export async function handleRequest({ id, texts }: PhonemizeRequest): Promise<Ph
     for (const text of texts) results.push(await phonemize(synthesizer, text))
     return { id, results }
   } catch (error) {
-    return { id, error: error instanceof Error ? error.message : String(error) }
+    return { id, error: errorMessage(error) }
   }
 }

@@ -16,6 +16,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { errorMessage } from '#core/errors'
 import { exportPdf } from '#core/print/exportPdf'
 import { pdfFileName } from '#core/print/fileName'
 import { fillPages, pairs, type PageBox } from '#core/print/pagination'
@@ -28,7 +29,16 @@ import { saveFile } from '#ui/utils/download'
 import { duration, sectionTitle } from '#ui/utils/format'
 import { usePorts } from '#ui/composables/usePorts'
 import { useDiscoursStore } from '#ui/stores/discours'
-import type { Card, DocBlock, ExportProgress, PdfTemplate, TextSize } from '#ui/types/print'
+import type {
+  Card,
+  DocBlock,
+  ExportProgress,
+  HeadBlock,
+  ParagraphBlock,
+  PdfTemplate,
+  SectionBlock,
+  TextSize,
+} from '#ui/types/print'
 import type { Nullable } from '#core/types'
 
 const store = useDiscoursStore()
@@ -126,17 +136,36 @@ const sheets = computed(() => pairs(cards.value))
 
 // ---------------------------------------------------------------- document
 
-/** The document as a list of blocks: header, then each section's title and paragraphs. */
+/**
+ * The document's header block.
+ *
+ * @param words - Words in the document.
+ * @returns The header, with the words and their reading time.
+ */
+function headBlock(words: number): HeadBlock {
+  return { kind: 'head', words, duration: readingTime(words) }
+}
+
+/**
+ * The blocks of a section.
+ *
+ * @param section - A section of the speech.
+ * @returns Its title, then each of its paragraphs with its number.
+ */
+function sectionBlocks({ number, title, paragraphs }: Section): DocBlock[] {
+  const heading: SectionBlock = { kind: 'section', number, title: sectionTitle(title) }
+  const body = paragraphs.map(({ paragraph, number }): ParagraphBlock => ({
+    kind: 'para',
+    paragraph,
+    number,
+  }))
+  return [heading, ...body]
+}
+
+/** The document as a list of blocks: the header, then each section's blocks. */
 const docBlocks = computed<DocBlock[]>(() => [
-  { kind: 'head', words: totalWords.value, duration: readingTime(totalWords.value) },
-  ...sections.value.flatMap((s): DocBlock[] => [
-    { kind: 'section', number: s.number, title: sectionTitle(s.title) },
-    ...s.paragraphs.map(({ paragraph, number }): DocBlock => ({
-      kind: 'para',
-      paragraph,
-      n: number,
-    })),
-  ]),
+  headBlock(totalWords.value),
+  ...sections.value.flatMap(sectionBlocks),
 ])
 
 /** The document's pages, filled by {@link paginateDocument}. */
@@ -200,25 +229,64 @@ const fileName = computed(() =>
   pdfFileName(scope.value >= 0 ? (sections.value[0] ?? null) : null, layout.value === 'cards'),
 )
 
-/** Captures the preview pages and downloads them as a PDF. */
-async function downloadPdf() {
-  const elements = [...(pages.value?.querySelectorAll<HTMLElement>('.sheet, .page') ?? [])]
-  if (!elements.length || exporting.value) return
-  exportError.value = ''
-  exporting.value = { done: 0, total: elements.length }
-  // Captured at full size: the preview's scale would otherwise apply to the capture.
+/** The preview's A4 pages, in order: card sheets or document pages. */
+function previewPages(): HTMLElement[] {
+  return [...(pages.value?.querySelectorAll<HTMLElement>('.sheet, .page') ?? [])]
+}
+
+/**
+ * Runs a task with the preview at full size, then restores its scale.
+ *
+ * @remarks The capture would otherwise include the preview's scale.
+ *
+ * @param task - What to do once the pages are rendered at full size.
+ * @returns The task's result.
+ */
+async function atFullSize<T>(task: () => Promise<T>): Promise<T> {
   const previewZoom = zoom.value
   zoom.value = 1
   try {
     await nextTick()
-    const pdf = await exportPdf(elements, rasterizer, (done) => {
-      exporting.value = { done, total: elements.length }
-    })
-    saveFile(new Blob([pdf as BlobPart], { type: 'application/pdf' }), fileName.value)
-  } catch (e) {
-    exportError.value = `Le PDF n’a pas pu être créé : ${e instanceof Error ? e.message : String(e)}`
+    return await task()
   } finally {
     zoom.value = previewZoom
+  }
+}
+
+/**
+ * Captures pages as a PDF, showing the progress in {@link exporting}.
+ *
+ * @param elements - The pages to capture, in order.
+ * @returns The PDF file's bytes.
+ */
+function capturePdf(elements: HTMLElement[]): Promise<Uint8Array> {
+  const total = elements.length
+  return exportPdf(elements, rasterizer, (done) => {
+    exporting.value = { done, total }
+  })
+}
+
+/**
+ * Makes the browser download a PDF under {@link fileName}.
+ *
+ * @param pdf - The PDF file's bytes.
+ */
+function savePdf(pdf: Uint8Array): void {
+  saveFile(new Blob([pdf as BlobPart], { type: 'application/pdf' }), fileName.value)
+}
+
+/** Captures the preview pages and downloads them as a PDF; one export at a time. */
+async function downloadPdf(): Promise<void> {
+  const elements = previewPages()
+  if (!elements.length || exporting.value) return
+  exportError.value = ''
+  // Set before any wait, so that a second click is ignored.
+  exporting.value = { done: 0, total: elements.length }
+  try {
+    savePdf(await atFullSize(() => capturePdf(elements)))
+  } catch (error) {
+    exportError.value = `Le PDF n’a pas pu être créé : ${errorMessage(error)}`
+  } finally {
     exporting.value = null
   }
 }

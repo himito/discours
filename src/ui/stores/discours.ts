@@ -12,6 +12,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { errorMessage } from '#core/errors'
 import type { AnalyzedParagraph, WordItem } from '#core/model'
 import { createAnalyzer } from '#core/phonetics/analyze'
 import { ipaOf as correctedIpa, withCorrection, type Corrections } from '#core/progress/corrections'
@@ -88,7 +89,7 @@ export const useDiscoursStore = defineStore('discours', () => {
       status.value = 'ready'
     } catch (e) {
       status.value = 'error'
-      error.value = e instanceof Error ? e.message : String(e)
+      error.value = errorMessage(e)
     }
   }
 
