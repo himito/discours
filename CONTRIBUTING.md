@@ -346,7 +346,8 @@ On static hosts without rewrites, unknown paths must get the app too: copy `inde
    `<script setup>` and a comment on each prop and event: they feed the _Vue components_ page of
    the API documentation.
 5. Update the README if you change what a user sees, a command or the configuration; update this
-   guide if you change the architecture or the project structure.
+   guide if you change the architecture or the project structure. Describe any change a user
+   would notice under _Unreleased_ in [CHANGELOG.md](CHANGELOG.md).
 6. Try the change in Chrome with `npm run dev`. For the PDF export and the deployment path, check
    a production build too (`npm run build`, then `npm run preview`).
 
