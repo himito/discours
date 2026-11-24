@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { SpeakOptions, SpeechSynthesizer, Voice } from '#core/reading/SpeechSynthesizer'
 import { playParagraphs } from '#core/reading/playback'
 import { paragraph } from './fixtures'
@@ -65,5 +65,35 @@ describe('playParagraphs', () => {
     expect(ok).toBe(false)
     expect(synth.spoken).toEqual(['Bonjour, à tous.'])
     expect(synth.stopped).toBeGreaterThan(0)
+  })
+
+  it('waits longer before a new section, and plays a range past the end', async () => {
+    vi.useFakeTimers()
+    const waits = vi.spyOn(globalThis, 'setTimeout')
+    const synth = new FakeSynthesizer()
+    const run = playParagraphs(synth, speech, 0, 10, {
+      rate: 1,
+      voiceId: '',
+      gaps: { paragraph: 100, section: 250 },
+    })
+    await vi.runAllTimersAsync()
+    expect(await run).toBe(true)
+    expect(synth.spoken).toHaveLength(3)
+    expect(waits.mock.calls.map(([, ms]) => ms)).toEqual([100, 250])
+    vi.useRealTimers()
+  })
+
+  it('removes the listeners it adds to the signal', async () => {
+    const controller = new AbortController()
+    const added = vi.spyOn(controller.signal, 'addEventListener')
+    const removed = vi.spyOn(controller.signal, 'removeEventListener')
+    await playParagraphs(new FakeSynthesizer(), speech, 0, 2, {
+      rate: 1,
+      voiceId: '',
+      gaps: noGaps,
+      signal: controller.signal,
+    })
+    expect(added).toHaveBeenCalledTimes(3)
+    expect(removed).toHaveBeenCalledTimes(3)
   })
 })
