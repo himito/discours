@@ -9,6 +9,7 @@
  */
 import type { Nullable } from '#core/types'
 
+/** 0 to 19 in words: the numbers that have their own name. */
 const UNITS = [
   'zéro',
   'un',
@@ -30,32 +31,113 @@ const UNITS = [
   'dix-sept',
   'dix-huit',
   'dix-neuf',
-]
-/** Tens from 20 to 60 (70–99 are built on 60 and 80). */
-const TENS = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante']
+] as const
 
-/** 0–99 in words. */
-function below100(n: number): string {
-  if (n < 20) return UNITS[n]!
-  if (n < 70) {
-    const t = Math.floor(n / 10)
-    const u = n % 10
-    if (u === 0) return TENS[t]!
-    if (u === 1) return `${TENS[t]}-et-un`
-    return `${TENS[t]}-${UNITS[u]}`
-  }
-  if (n < 80) return n === 71 ? 'soixante-et-onze' : `soixante-${UNITS[n - 60]}`
-  if (n === 80) return 'quatre-vingts'
-  return `quatre-vingt-${UNITS[n - 80]}`
+/** Words for the tens from 20 to 60; 70 to 99 are built on *soixante* and *quatre-vingt*. */
+const TENS = new Map([
+  [20, 'vingt'],
+  [30, 'trente'],
+  [40, 'quarante'],
+  [50, 'cinquante'],
+  [60, 'soixante'],
+])
+
+/** Remainders joined to the tens with *et*: *vingt-et-un*, *soixante-et-onze*. */
+const JOINED_WITH_ET = new Set([1, 11])
+
+const THOUSAND = 1_000
+const MILLION = 1_000_000
+/** The largest number {@link cardinal} writes in words. */
+const MAX_CARDINAL = 999_999_999
+
+/**
+ * The name of a number from 0 to 19.
+ *
+ * @param n - An integer from 0 to 19.
+ * @returns Its name, from {@link UNITS}.
+ * @throws RangeError if `n` is out of range.
+ */
+function unitName(n: number): string {
+  const name = UNITS[n]
+  if (name === undefined) throw new RangeError(`No unit name for ${n}`)
+  return name
 }
 
-/** 0–999 in words (*cents* agrees when nothing follows). */
+/**
+ * The name of a ten from 20 to 60.
+ *
+ * @param tens - 20, 30, 40, 50 or 60.
+ * @returns Its name, from {@link TENS}.
+ * @throws RangeError for any other number.
+ */
+function tensName(tens: number): string {
+  const name = TENS.get(tens)
+  if (name === undefined) throw new RangeError(`No tens name for ${tens}`)
+  return name
+}
+
+/**
+ * Writes a number from 0 to 99 in words.
+ *
+ * @remarks 70–79 are *soixante* + 10–19 (*soixante-et-onze*, *soixante-douze*); 80–99 are
+ * *quatre-vingt* + 0–19, with no *et*, and *quatre-vingts* takes an *s* when nothing follows.
+ *
+ * @param n - An integer from 0 to 99.
+ * @returns The number in words.
+ */
+function below100(n: number): string {
+  if (n < 20) return unitName(n)
+  if (n >= 80) return n === 80 ? 'quatre-vingts' : `quatre-vingt-${unitName(n - 80)}`
+  const tens = Math.min(Math.floor(n / 10) * 10, 60)
+  const rest = n - tens
+  const tensWord = tensName(tens)
+  if (rest === 0) return tensWord
+  return `${tensWord}-${JOINED_WITH_ET.has(rest) ? 'et-' : ''}${unitName(rest)}`
+}
+
+/**
+ * Writes a number from 0 to 999 in words.
+ *
+ * @remarks *cent* takes an *s* when multiplied and nothing follows: *deux-cents*, but
+ * *deux-cent-un*.
+ *
+ * @param n - An integer from 0 to 999.
+ * @returns The number in words.
+ */
 function below1000(n: number): string {
-  const h = Math.floor(n / 100)
-  const r = n % 100
-  if (h === 0) return below100(r)
-  const head = h === 1 ? 'cent' : `${UNITS[h]}-cent${r === 0 ? 's' : ''}`
-  return r === 0 ? head : `${head}-${below100(r)}`
+  const hundreds = Math.floor(n / 100)
+  const rest = n % 100
+  if (hundreds === 0) return below100(rest)
+  const hundredsWords =
+    hundreds === 1 ? 'cent' : `${unitName(hundreds)}-cent${rest === 0 ? 's' : ''}`
+  return rest === 0 ? hundredsWords : `${hundredsWords}-${below100(rest)}`
+}
+
+/** Removes the plural *s* that *cents* and *vingts* only take at the end of a number. */
+const withoutFinalPlural = (words: string): string => words.replace(/s$/, '')
+
+/**
+ * The millions of a number in words: *un-million*, *deux-cents-millions*.
+ *
+ * @param count - How many millions, from 0 to 999.
+ * @returns The words, or `''` for 0.
+ */
+function millionsInWords(count: number): string {
+  if (count === 0) return ''
+  return count === 1 ? 'un-million' : `${below1000(count)}-millions`
+}
+
+/**
+ * The thousands of a number in words: *mille*, *deux-cent-mille*.
+ *
+ * @remarks *mille* never takes an *s*, and *cents* / *vingts* lose theirs before it.
+ *
+ * @param count - How many thousands, from 0 to 999.
+ * @returns The words, or `''` for 0.
+ */
+function thousandsInWords(count: number): string {
+  if (count === 0) return ''
+  return count === 1 ? 'mille' : `${withoutFinalPlural(below1000(count))}-mille`
 }
 
 /**
@@ -71,21 +153,14 @@ function below1000(n: number): string {
  * ```
  */
 export function cardinal(n: number): string {
-  if (!Number.isInteger(n) || n < 0 || n >= 1e9) return String(n)
-  if (n < 1000) return below1000(n)
-  const parts: string[] = []
-  const millions = Math.floor(n / 1e6)
-  const thousands = Math.floor((n % 1e6) / 1000)
-  const rest = n % 1000
-  if (millions)
-    parts.push(`${millions === 1 ? 'un' : below1000(millions)}-million${millions > 1 ? 's' : ''}`)
-  if (thousands) {
-    // "cent" and "vingt" lose their plural -s before "mille".
-    const t = thousands === 1 ? '' : `${below1000(thousands).replace(/s$/, '')}-`
-    parts.push(`${t}mille`)
-  }
-  if (rest) parts.push(below1000(rest))
-  return parts.join('-')
+  if (!Number.isInteger(n) || n < 0 || n > MAX_CARDINAL) return String(n)
+  if (n < THOUSAND) return below1000(n)
+  const millions = Math.floor(n / MILLION)
+  const thousands = Math.floor((n % MILLION) / THOUSAND)
+  const rest = n % THOUSAND
+  return [millionsInWords(millions), thousandsInWords(thousands), rest ? below1000(rest) : '']
+    .filter(Boolean)
+    .join('-')
 }
 
 /**
@@ -103,7 +178,8 @@ export function cardinal(n: number): string {
  */
 export function ordinal(n: number): string {
   if (n === 1) return 'premier'
-  const words = cardinal(n).replace(/s$/, '') // quatre-vingts → quatre-vingtième, deux-cents → deux-centième
+  // quatre-vingts → quatre-vingtième, deux-cents → deux-centième
+  const words = withoutFinalPlural(cardinal(n))
   if (words.endsWith('cinq')) return `${words}uième`
   if (words.endsWith('neuf')) return `${words.slice(0, -1)}vième`
   if (words.endsWith('e')) return `${words.slice(0, -1)}ième`
@@ -131,29 +207,34 @@ export function parseRoman(s: string): Nullable<number> {
   return toRoman(total) === s ? total : null
 }
 
-/** Canonical Roman numeral of a number, used to validate {@link parseRoman}'s input. */
+/** Roman symbols from the largest, with the subtractive pairs (`CM`, `IV`…) as symbols. */
+const ROMAN_SYMBOLS = [
+  { value: 1000, symbol: 'M' },
+  { value: 900, symbol: 'CM' },
+  { value: 500, symbol: 'D' },
+  { value: 400, symbol: 'CD' },
+  { value: 100, symbol: 'C' },
+  { value: 90, symbol: 'XC' },
+  { value: 50, symbol: 'L' },
+  { value: 40, symbol: 'XL' },
+  { value: 10, symbol: 'X' },
+  { value: 9, symbol: 'IX' },
+  { value: 5, symbol: 'V' },
+  { value: 4, symbol: 'IV' },
+  { value: 1, symbol: 'I' },
+] as const
+
+/**
+ * Writes a number as a canonical Roman numeral, to validate {@link parseRoman}'s input.
+ *
+ * @param n - A positive integer.
+ * @returns The Roman numeral: each symbol as many times as it fits, from the largest.
+ */
 function toRoman(n: number): string {
-  const table: [number, string][] = [
-    [1000, 'M'],
-    [900, 'CM'],
-    [500, 'D'],
-    [400, 'CD'],
-    [100, 'C'],
-    [90, 'XC'],
-    [50, 'L'],
-    [40, 'XL'],
-    [10, 'X'],
-    [9, 'IX'],
-    [5, 'V'],
-    [4, 'IV'],
-    [1, 'I'],
-  ]
-  let out = ''
-  for (const [v, r] of table) {
-    while (n >= v) {
-      out += r
-      n -= v
-    }
-  }
-  return out
+  let remaining = n
+  return ROMAN_SYMBOLS.map(({ value, symbol }) => {
+    const count = Math.floor(remaining / value)
+    remaining -= count * value
+    return symbol.repeat(count)
+  }).join('')
 }
