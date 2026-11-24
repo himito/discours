@@ -10,7 +10,7 @@ const LANGUAGE = 'fr-FR'
 
 /**
  * How good a voice usually sounds: fr-FR voices, Google first, then Thomas / Amélie / Denise /
- * Henri (macOS, Windows), then the rest. The same preference as the original prototype.
+ * Henri (macOS, Windows), then the rest.
  */
 function quality(v: SpeechSynthesisVoice): number {
   if (!/^fr(-|_)FR/i.test(v.lang)) return 0

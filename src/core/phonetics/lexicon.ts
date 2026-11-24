@@ -1,7 +1,7 @@
 /**
  * Hand-checked French IPA lexicon.
  *
- * @remarks Entries come from the original prototype, split into syllables with dots. They take
+ * @remarks Entries are split into syllables with dots. They take
  * precedence over the phonemizer (see `createAnalyzer`).
  *
  * @packageDocumentation
@@ -21,7 +21,7 @@ const ELIDED_PREFIXES = new Map<string, string>(Object.entries({"l'":"l","d'":"d
 const MAX_ELISIONS = 2
 
 /**
- * Looks a word up in the lexicon, as the prototype's `IPA_FR()` does.
+ * Looks a word up in the lexicon.
  *
  * @remarks Punctuation and case are ignored. A word with elided prefixes is looked up without them,
  * then the prefixes' IPA is put back: *l'archivage* → l + aʁ.ʃi.vaʒ, *qu'aujourd'hui* →

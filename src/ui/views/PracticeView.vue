@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The training screen, modelled on the original prototype.
+ * The training screen.
  *
  * @remarks
  * - **Sidebar**: paragraphs grouped by section, with the best score of each.

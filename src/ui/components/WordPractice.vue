@@ -3,7 +3,7 @@
  * Single-word practice panel, docked at the bottom of the screen.
  *
  * @remarks
- * As in the original prototype: the word is spoken when the panel opens. Then the user can
+ * The word is spoken when the panel opens. Then the user can
  * - **Écouter**: hear it again at the chosen rate,
  * - **Lentement**: hear it at 0.6×,
  * - **Répéter**: say it, checked by speech recognition (`isWordRecognized`).

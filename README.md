@@ -7,9 +7,6 @@ with its pronunciation in the International Phonetic Alphabet (IPA, _API_ in Fre
 liaisons to make. You can listen to a model voice, read aloud and see which words were understood,
 then work on the difficult ones one by one.
 
-The training screen and its engines follow an earlier single-page prototype,
-_Entrainement prononciation_, generalized to any speech.
-
 ## Contents
 
 - [Features](#features)
@@ -246,8 +243,8 @@ speech is analyzed in under a second.
 
 ### Model voice
 
-`src/adapters/webspeech/WebSpeechSynthesizer.ts` uses the browser's speech synthesis, with the
-same voice choice as the prototype: fr-FR voices, _Google français_ first, then Thomas, Amélie, Denise or Henri. A
+`src/adapters/webspeech/WebSpeechSynthesizer.ts` uses the browser's speech synthesis. It prefers
+fr-FR voices, _Google français_ first, then Thomas, Amélie, Denise or Henri. A
 different voice can be picked in the toolbar.
 
 The whole paragraph is spoken as **one utterance**, which keeps intonation natural across
@@ -288,7 +285,7 @@ looked up. Without a connection, the panel says the definition is unavailable.
 ### Reading score
 
 The `SpeechRecognizer` port (Web Speech API in the browser) gives the transcript.
-`src/core/reading/align.ts` aligns it with the words read by longest common subsequence, with a tolerant comparison. This is the prototype's algorithm:
+`src/core/reading/align.ts` aligns it with the words read by longest common subsequence, with a tolerant comparison:
 
 - Words are compared without accents or punctuation.
 - Elisions are matched part by part: _l'équipe_ → `l` + `equipe`.
