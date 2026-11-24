@@ -25,7 +25,7 @@ import {
   type WordStats,
 } from '#core/progress/progress'
 import type { ReadingScore } from '#core/reading/session'
-import { DEFAULT_SETTINGS, type SavedState } from '#core/state/state'
+import { DEFAULT_SETTINGS } from '#core/state/state'
 import { usePorts } from '#ui/composables/usePorts'
 import { SAMPLE_TEXT } from '#ui/content/sampleText'
 import type { Nullable } from '#core/types'
@@ -55,8 +55,7 @@ export const useDiscoursStore = defineStore('discours', () => {
   const showIpa = ref(saved.showIpa ?? DEFAULT_SETTINGS.showIpa)
   const showLinks = ref(saved.showLinks ?? DEFAULT_SETTINGS.showLinks)
   const rate = ref(saved.rate ?? DEFAULT_SETTINGS.rate)
-  // `voiceURI` is the name used by versions before 2026-11.
-  const voiceId = ref(saved.voiceId ?? legacyVoice(saved) ?? DEFAULT_SETTINGS.voiceId)
+  const voiceId = ref(saved.voiceId ?? DEFAULT_SETTINGS.voiceId)
   const cur = ref(saved.cur ?? 0)
   const best = ref<BestScores>(saved.best ?? {})
   const hard = ref<HardWords>(saved.hard ?? {})
@@ -188,8 +187,3 @@ export const useDiscoursStore = defineStore('discours', () => {
     clearHard,
   }
 })
-
-/** The voice saved by older versions, under its former name. */
-function legacyVoice(saved: Partial<SavedState>): string | undefined {
-  return (saved as { voiceURI?: string }).voiceURI
-}

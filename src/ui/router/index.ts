@@ -8,7 +8,7 @@
  * | `/texte`    | Editing the speech (`EditorView`)                                |
  * | `/pdf`      | PDF of the speech, as cards or a document (`PrintView`)          |
  *
- * `/imprimer` redirects to `/pdf`, and any other path to `/`. URLs are relative to the app's
+ * Any other path redirects to `/`. URLs are relative to the app's
  * public path (`BASE_URL`), so the app works from a sub-path.
  *
  * @packageDocumentation
@@ -24,7 +24,6 @@ const router = createRouter({
     { path: '/texte', name: 'texte', component: () => import('#ui/views/EditorView.vue') },
     { path: '/discours', name: 'discours', component: () => import('#ui/views/DocumentView.vue') },
     { path: '/pdf', name: 'pdf', component: () => import('#ui/views/PrintView.vue') },
-    { path: '/imprimer', redirect: (to) => ({ name: 'pdf', query: to.query }) },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

@@ -127,8 +127,7 @@ its text can't be selected or searched.
 The web fonts are embedded in the capture, which is why the Google Fonts stylesheet is loaded with
 `crossorigin` in `index.html`. Without a connection, system fonts are used.
 
-`?partie=2` preselects the second section and `?modele=document` the document template. The old
-`/imprimer` links redirect to `/pdf`.
+`?partie=2` preselects the second section and `?modele=document` the document template.
 
 ## Writing a speech
 
