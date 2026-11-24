@@ -14,18 +14,29 @@ import {
 } from '#core/reading/SpeechRecognizer'
 import type { Nullable } from '#core/types'
 
-/* Minimal typings: the Web Speech recognition API is not in TypeScript's DOM lib. */
-interface RecognitionAlternative {
-  transcript: string
+/*
+ * Minimal typings: the Web Speech recognition API is not in TypeScript's DOM lib. Its lists
+ * (results, alternatives) are not arrays but list-like objects, hence `ArrayLike`.
+ */
+
+/** One guess for what was said. */
+export interface RecognitionAlternative {
+  /** The words heard, as text. */
+  readonly transcript: string
 }
-interface RecognitionResult {
+
+/** One utterance recognized: its guesses, best first. */
+export interface RecognitionResult extends ArrayLike<RecognitionAlternative> {
+  /** `false` while the recognizer may still change it. */
   readonly isFinal: boolean
-  readonly length: number
-  [index: number]: RecognitionAlternative
 }
-interface RecognitionEvent {
-  resultIndex: number
-  results: { length: number; [index: number]: RecognitionResult }
+
+/** New or updated results of a recognition. */
+export interface RecognitionEvent {
+  /** Index of the first result that changed. */
+  readonly resultIndex: number
+  /** Every result since the recognition started. */
+  readonly results: ArrayLike<RecognitionResult>
 }
 interface Recognition {
   lang: string
@@ -48,13 +59,53 @@ function recognitionConstructor(): RecognitionCtor | undefined {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition
 }
 
+/** How a recognition listens: `continuous` for reading aloud, `utterance` for one word. */
+type RecognitionMode = 'continuous' | 'utterance'
+
+/**
+ * Settings of each {@link RecognitionMode}: a continuous recognition reports results as they come,
+ * with one guess each; a single utterance gives up to 5 guesses at the end.
+ */
+const MODES = {
+  continuous: { continuous: true, interimResults: true, maxAlternatives: 1 },
+  utterance: { continuous: false, interimResults: false, maxAlternatives: 5 },
+} satisfies Record<RecognitionMode, Partial<Recognition>>
+
+/** A transcript so far: what is confirmed, and what is still being recognized. */
+export interface Transcript {
+  /** Everything confirmed since the start, each result preceded by a space. */
+  finals: string
+  /** What is still being recognized; it may change. */
+  interim: string
+}
+
+/**
+ * Reads the results that changed in a recognition event.
+ *
+ * @param event - The browser's results event.
+ * @param finalsSoFar - What was confirmed before this event.
+ * @returns The transcript: the confirmed results added to `finalsSoFar`, and the others as interim.
+ */
+export function readResults(event: RecognitionEvent, finalsSoFar: string): Transcript {
+  let finals = finalsSoFar
+  let interim = ''
+  for (const result of Array.from(event.results).slice(event.resultIndex)) {
+    if (result.isFinal) finals += ' ' + bestTranscript(result)
+    else interim += bestTranscript(result)
+  }
+  return { finals, interim }
+}
+
+/** The most likely transcript of a result, or `''` if it has no guess. */
+const bestTranscript = (result: RecognitionResult): string => result[0]?.transcript ?? ''
+
 /** Errors meaning the microphone is not allowed. */
 const isBlocked = (error: string) => error === 'not-allowed' || error === 'service-not-allowed'
 
 /** Starts a recognition, ignoring "already started". */
-function start(rec: Recognition): void {
+function start(recognition: Recognition): void {
   try {
-    rec.start()
+    recognition.start()
   } catch {
     /* already started */
   }
@@ -66,63 +117,58 @@ export class WebSpeechRecognizer implements SpeechRecognizer {
   readonly supported = !!this.Ctor
 
   listen(listener: TranscriptListener): RecognitionSession {
-    if (!this.Ctor) return { stop: () => {} }
-    const rec = this.create(true)
-    let running = true
+    const recognition = this.create('continuous')
+    if (!recognition) return { stop: () => {} }
     let finals = ''
-    rec.onresult = (e) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const result = e.results[i]!
-        if (result.isFinal) finals += ' ' + result[0]!.transcript
-        else interim += result[0]!.transcript
-      }
-      listener.onTranscript(finals, interim)
+    let stopped = false
+    const stop = () => {
+      stopped = true
+      recognition.stop()
     }
-    rec.onerror = (e) => {
-      if (!isBlocked(e.error)) return
-      running = false
-      rec.stop()
+    recognition.onresult = (event) => {
+      const transcript = readResults(event, finals)
+      finals = transcript.finals
+      listener.onTranscript(transcript.finals, transcript.interim)
+    }
+    recognition.onerror = ({ error }) => {
+      if (!isBlocked(error)) return
+      stop()
       listener.onError('microphone-blocked')
     }
     // Chrome ends a continuous recognition after a silence: restart while the speaker reads.
-    rec.onend = () => {
-      if (running) start(rec)
+    recognition.onend = () => {
+      if (!stopped) start(recognition)
     }
-    start(rec)
-    return {
-      stop: () => {
-        running = false
-        rec.stop()
-      },
-    }
+    start(recognition)
+    return { stop }
   }
 
   listenOnce(): UtteranceRecognition {
-    if (!this.Ctor) return { result: Promise.resolve([]), cancel: () => {} }
-    const rec = this.create(false)
+    const recognition = this.create('utterance')
+    if (!recognition) return { result: Promise.resolve([]), cancel: () => {} }
     const result = new Promise<string[]>((resolve, reject) => {
       let heard: string[] = []
-      rec.onresult = (e) => {
-        const r = e.results[0]!
-        heard = Array.from({ length: r.length }, (_, i) => r[i]!.transcript.trim())
+      recognition.onresult = (e) => {
+        const [utterance] = Array.from(e.results)
+        heard = utterance ? Array.from(utterance, (guess) => guess.transcript.trim()) : []
       }
-      rec.onerror = (e) => {
+      recognition.onerror = (e) => {
         if (isBlocked(e.error)) reject(new RecognitionFailure('microphone-blocked'))
       }
-      rec.onend = () => resolve(heard)
+      recognition.onend = () => resolve(heard)
     })
-    start(rec)
-    return { result, cancel: () => rec.abort() }
+    start(recognition)
+    return { result, cancel: () => recognition.abort() }
   }
 
-  /** A French recognition: continuous with interim results, or one utterance with 5 guesses. */
-  private create(continuous: boolean): Recognition {
-    const rec = new this.Ctor!()
-    rec.lang = 'fr-FR'
-    rec.continuous = continuous
-    rec.interimResults = continuous
-    rec.maxAlternatives = continuous ? 1 : 5
-    return rec
+  /**
+   * A French recognition set up for a mode.
+   *
+   * @param mode - How it listens (see {@link MODES}).
+   * @returns The recognition, not started; `null` if the browser has no speech recognition.
+   */
+  private create(mode: RecognitionMode): Nullable<Recognition> {
+    if (!this.Ctor) return null
+    return Object.assign(new this.Ctor(), { lang: 'fr-FR' }, MODES[mode])
   }
 }
