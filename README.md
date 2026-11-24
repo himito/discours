@@ -7,17 +7,17 @@ with its pronunciation in the International Phonetic Alphabet (IPA, _API_ in Fre
 liaisons to make. You can listen to a model voice, read aloud and see which words were understood,
 then work on the difficult ones one by one.
 
+It runs entirely in the browser: no server, no account. Your text and progress stay in your
+browser.
+
 ## Contents
 
 - [Features](#features)
-- [Getting started](#getting-started)
-- [Deployment](#deployment)
-- [PDF](#pdf)
+- [Running it locally](#running-it-locally)
+- [A first try](#a-first-try)
 - [Writing a speech](#writing-a-speech)
-- [Architecture](#architecture)
-- [How it works](#how-it-works)
-- [Project structure](#project-structure)
-- [Development](#development)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
 - [Limitations](#limitations)
 - [Contributing](#contributing)
 - [Licence](#licence)
@@ -45,86 +45,46 @@ then work on the difficult ones one by one.
   applies everywhere the word appears.
 - **Progress is saved** in the browser: best score per paragraph, words to work on, per-word
   success rate.
-- **PDF**: the whole speech or one section, as training cards (two A5 cards per A4 page, one per
-  section, to cut out) or as a numbered A4 document, with the IPA, liaisons and pauses.
+- **PDF**: the whole speech or one section, as training cards (two A5 cards per A4 page, to cut
+  out) or as a numbered A4 document, with the IPA, liaisons and pauses.
 
-## Getting started
+## Running it locally
 
-Requirements: Node.js 22.18+ or 24.12+.
+Requirements: [Node.js](https://nodejs.org) 22.18+ or 24.12+, and Google Chrome or Microsoft Edge
+for speech recognition.
 
 ```sh
 npm install
 npm run dev
 ```
 
-Then open the URL shown by Vite **in Google Chrome or Microsoft Edge**. Speech recognition is not
-available in Safari or Firefox; the model voice and the IPA still work there.
+Open the URL Vite prints (usually <http://localhost:5173>) **in Chrome or Edge**. Speech
+recognition isn't available in Safari or Firefox; the IPA and the model voice still work there.
 
-The microphone is needed for _Lire à voix haute_ and _Répéter_. Allow it when the browser asks.
-
-| Command           | What it does                                                    |
-| ----------------- | --------------------------------------------------------------- |
-| `npm run dev`     | Development server with hot reload                              |
-| `npm run build`   | Type-check and production build in `dist/`                      |
-| `npm run preview` | Serve the production build                                      |
-| `npm test`        | Unit tests of the core (Vitest)                                 |
-| `npm run lint`    | oxlint then ESLint, with fixes                                  |
-| `npm run format`  | Prettier on `src/` and `tests/`                                 |
-| `npm run espeak`  | Rebuild the French eSpeak-NG bundle (run by `dev` and `build`)  |
-| `npm run docs`    | Generate the API documentation in `docs/api/` (TypeDoc)         |
-| `npm run deploy`  | Build for a sub-path and copy into a folder of apps (see below) |
-
-## Deployment
-
-`npm run deploy` builds the app for a sub-path and copies it into a folder of static apps:
+The first `npm run dev` also builds the French eSpeak-NG data (a few seconds). To try the
+production build instead:
 
 ```sh
-npm run deploy -- /path/to/apps        # installs into /path/to/apps/discours
-DEPLOY_DIR=/path/to/apps npm run deploy
+npm run build
+npm run preview
 ```
 
-To avoid typing the path, set it once in a `.deploy.local` file at the project root (git-ignored):
+## A first try
 
-```sh
-DEPLOY_DIR=/path/to/apps
-```
+The app opens on an example speech, so you can try everything before writing your own.
 
-The app is built with the public path `/apps/discours/` (change it with `BASE_PATH`, read by
-`vite.config.ts`). `scripts/deploy.sh` syncs `dist/` into `<folder>/discours/`, removing files from
-older builds, and writes an `.htaccess`. Publishing the folder is up to you.
-
-Links to inner pages (such as `/apps/discours/texte`) work in two ways:
-
-- on Apache, through the `.htaccess` rewrite to `index.html`;
-- on static hosts without rewrites (GitHub Pages), through a `404.html` that stores the requested
-  path in `sessionStorage` (`spa-redirect`) and redirects to the app. The first script in
-  `index.html` restores the path.
-
-## PDF
-
-**⤓ Télécharger en PDF** in the sidebar opens the PDF screen (route `/pdf`). Choose what to
-include (the whole speech or one section), the template, the text size, and what to show (IPA,
-liaisons, pauses, words to work on), then **Télécharger le PDF**. The preview shows the exact
-pages of the PDF.
-
-- **Fiches**: one card per section, two A5 landscape cards per A4 page, with a cut line. The rail
-  on the left shows the section number and title. Each card has tick boxes for rehearsals, the
-  reading time at 135 words per minute and, on the section's last card, its words to work on. A
-  section too long for one card continues on the next (1/2, 2/2).
-- **Document**: A4 pages with a legend of the marks and page numbers. A paragraph is never split
-  across pages, and a section title never ends a page.
-
-Both templates are laid out as exact A4 pages: `PrintView.vue` measures every paragraph and title
-at final size in a hidden box, then `fillPages` (`src/core/print/pagination.ts`) fills the cards
-or pages. Each page is captured as a 240 dpi JPEG by the `PageRasterizer` port
-([html-to-image](https://github.com/bubkoo/html-to-image) in the browser), and
-`src/core/print/pdfWriter.ts` writes the PDF itself (one image per page, about 450 KB per page). The PDF looks exactly like the preview, but
-its text can't be selected or searched.
-
-The web fonts are embedded in the capture, which is why the Google Fonts stylesheet is loaded with
-`crossorigin` in `index.html`. Without a connection, system fonts are used.
-
-`?partie=2` preselects the second section and `?modele=document` the document template.
+1. **Read the IPA.** Each word of the first paragraph has its pronunciation underneath, with the
+   liaisons in colour.
+2. **Listen.** Click **▶ Écouter le modèle**: the paragraph is read aloud and the word being
+   spoken is highlighted. Adjust **Vitesse** in the top bar if it's too fast.
+3. **Read aloud.** Click **● Lire à voix haute** (or press Space), allow the microphone, read the
+   paragraph, then click **■ J'ai fini**. Words turn green or red, and you get a score, a time and
+   your words per minute.
+4. **Practise a word.** Click any word, or one under _Mots à travailler_: hear it, hear it slowly
+   (**Lentement**), then click **Répéter** and say it. The panel also shows its definitions.
+5. **Move on.** Use ← → (keys or buttons) or the list on the left. Each paragraph keeps its best
+   score.
+6. **Use your own text.** Click **✎ Modifier le texte** and paste your speech (see below).
 
 ## Writing a speech
 
@@ -143,273 +103,79 @@ Depuis mon arrivée au laboratoire, / mes travaux portent sur…
 - **`/`** marks a short pause and **`//`** a long one. The model voice respects them.
 - **`[→]`** marks a slide change. It is shown but not read.
 
-The text is saved as you type.
+The text is saved as you type. Editing a paragraph resets its score.
 
-## Architecture
+## Configuration
 
-The code follows **ports and adapters** (hexagonal architecture): the logic doesn't know about
-Vue, the DOM or the browser's APIs, and talks to the outside world through interfaces, the
-**ports**. Each module of the core declares the ports it needs, next to the logic that uses them.
+**In the app** (saved in the browser):
 
-```mermaid
-flowchart LR
-  subgraph UI["src/ui — Vue"]
-    V[views, components] --> C[composables, store]
-  end
-  subgraph Core["src/core — plain TypeScript"]
-    D[modules: logic + their ports]
-  end
-  subgraph Adapters["src/adapters — browser"]
-    A[espeak, webspeech, wiktionary, storage, pdf]
-  end
-  C --> D
-  A -. implement ports .-> D
-  M[src/main.ts<br/>composition root] --> Adapters
-  M --> UI
+| Setting                         | Where                                         |
+| ------------------------------- | --------------------------------------------- |
+| IPA and liaisons shown or not   | _Affichage_, top bar (⚙ _Réglages_ on phones) |
+| Speed of the model voice        | _Vitesse_, top bar                            |
+| Voice                           | _Voix_, top bar, when the browser has several |
+| A word's IPA                    | click the word, then _Corriger l'API_         |
+| PDF template, size and contents | _Télécharger en PDF_, in the sidebar          |
+
+**When building and deploying** (environment variables):
+
+| Variable     | Default                                         | What it sets                                                  |
+| ------------ | ----------------------------------------------- | ------------------------------------------------------------- |
+| `BASE_PATH`  | `/` (`npm run dev`), `/apps/discours/` (deploy) | The public path the app is served from                        |
+| `DEPLOY_DIR` | none                                            | The folder `npm run deploy` installs into; or `.deploy.local` |
+
+Everything the app saves is in the browser's `localStorage` (key `discours:v2`). Clearing the
+site's data resets the text, the settings and the progress.
+
+## Deployment
+
+The app is a set of static files: any web server can host it.
+
+`npm run deploy` builds the app for the public path `/apps/discours/` and copies it into
+`<folder>/discours/`:
+
+```sh
+npm run deploy -- /path/to/apps        # installs into /path/to/apps/discours
+DEPLOY_DIR=/path/to/apps npm run deploy
 ```
 
-| Module (`src/core/…`) | Logic                                               | Ports                                   | Adapter (`src/adapters/…`)                                        |
-| --------------------- | --------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------- |
-| `phonetics/`          | `createAnalyzer`: IPA, syllables, liaisons; lexicon | `Phonemizer`                            | `espeak/EspeakPhonemizer` (eSpeak-NG in a web worker)             |
-| `reading/`            | alignment, reading sessions, scores, playback       | `SpeechSynthesizer`, `SpeechRecognizer` | `webspeech/WebSpeechSynthesizer`, `webspeech/WebSpeechRecognizer` |
-| `dictionary/`         | —                                                   | `Dictionary`                            | `wiktionary/WiktionaryDictionary`                                 |
-| `state/`              | saved state and settings                            | `StateStorage`                          | `storage/LocalStorageStateStorage`                                |
-| `print/`              | pagination, file names, PDF writer and export       | `PageRasterizer`                        | `pdf/HtmlToImageRasterizer` (html-to-image)                       |
-| `text/`               | tokenizer, normalization, numbers, word keys        | —                                       | —                                                                 |
-| `speech/`             | sections, display units, spoken text                | —                                       | —                                                                 |
-| `progress/`           | best scores, words to work on, IPA corrections      | —                                       | —                                                                 |
+To avoid typing the path, set it once in a `.deploy.local` file at the project root (git-ignored):
 
-- **`src/core/`**: the domain, as pure functions and plain data. `model.ts` is the data model
-  (`AnalyzedParagraph`, `WordItem`…); `ports.ts` lists every port the app needs (`Ports`).
-- **`src/adapters/`**: the browser implementation of each port. `index.ts` assembles them
-  (`createBrowserPorts`).
-- **`src/ui/`**: Vue only. Screens and components display state and forward user actions. The
-  composables (`useModelVoice`, `useReadingSession`) and the Pinia store turn core functions and
-  ports into reactive state. The UI gets the ports with `usePorts()`, never an adapter.
-- **`src/main.ts`**: the composition root, the only place that sees both adapters and UI.
-
-Each layer has an import alias, declared once in the `imports` field of `package.json` (Node's
-subpath imports, which TypeScript, Vite, Vitest and TypeDoc all read): `#core/…`, `#adapters/…`
-and `#ui/…`. Imports that leave their folder use an alias, never
-`../`; `./` is only for files in the same folder.
-
-Dependencies point inward: `core` imports nothing from `ui` or `adapters`, adapters don't import
-the UI, and `ui` imports no adapter. ESLint enforces it (`no-restricted-imports` in
-`eslint.config.ts`).
-
-**Extending.** To use another engine (a cloud text-to-speech voice, another phonemizer, another
-dictionary, server-side storage), write a class implementing the port in `src/adapters/` and use
-it in `createBrowserPorts()`. Nothing else changes. Tests use the same mechanism with fakes.
-
-## How it works
-
-### Overview
-
-```mermaid
-flowchart LR
-  T[Speech text] --> P[parseText<br/>paragraphs, sentences, tokens]
-  P --> N[normalizeSentence<br/>M. → Monsieur, XXIe → vingt-et-unième…]
-  N --> W[Phonemizer port<br/>eSpeak-NG web worker]
-  W -->|phonemes + word positions| A[createAnalyzer]
-  L[Reference lexicon] --> A
-  A --> V[PracticeView]
-  V -->|playParagraphs| S[SpeechSynthesizer port]
-  V -->|read aloud| R[SpeechRecognizer port]
-  R --> AL[reading session: align, score] --> V
+```sh
+DEPLOY_DIR=/path/to/apps
 ```
 
-### IPA transcription
+To serve it from another path, set `BASE_PATH` (for example `BASE_PATH=/discours/ npm run
+deploy`). Each deployment removes the files of the previous one. Publishing the folder is up to
+you.
 
-1. **Parsing** (`src/core/text/normalize.ts`). The text is split into paragraphs, sentences and
-   tokens (words, punctuation, reading marks), keeping the original spacing.
-2. **Normalization.** eSpeak-NG reads some written forms badly, so they are rewritten first:
-   _M._ → Monsieur, _XXIe_ / _21e_ → vingt-et-unième, _Louis XIV_ → Louis 14, _PIB_ → pé-i-bé,
-   _1 200 000_ → 1200000, _qu'aujourd'hui_. A character map keeps track of which original word
-   each character comes from.
-3. **Phonemization** (the `Phonemizer` port, implemented by `src/adapters/espeak/`). eSpeak-NG
-   runs in a web worker. Its synthesis events give every phoneme along with the position of the
-   word that produced it, which is how the IPA is aligned word by word. The audio is thrown away.
-4. **Choosing the IPA** (`src/core/phonetics/analyze.ts`). If the word is in the hand-checked lexicon
-   (`src/core/phonetics/lexicon.ts`, about 600 hand-checked words split into syllables), its entry is
-   used. Otherwise eSpeak's phonemes are cleaned up (stress marks removed, ɥ restored in _suis_,
-   _nuit_) and split into syllables.
-5. **Liaisons.** Every distinct word is also phonemized on its own. A final consonant that only
-   appears in context is a liaison (_les_ /le/, _les enfants_ /lez‿ɑ̃fɑ̃/). A pronounced final
-   consonant before a vowel is an enchaînement (_avec‿elle_).
+Links to inner pages (such as `/apps/discours/texte`) work on Apache, thanks to the `.htaccess`
+the script writes, and on static hosts without rewrite rules, such as GitHub Pages, thanks to a
+`404.html` redirect.
 
-The French eSpeak data is cut down from 23 MB (all languages) to about 700 KB by
-`scripts/build-espeak-fr.mjs`. It loads in the background when the app starts, and a 750-word
-speech is analyzed in under a second.
-
-### Model voice
-
-`src/adapters/webspeech/WebSpeechSynthesizer.ts` uses the browser's speech synthesis. It prefers
-fr-FR voices, _Google français_ first, then Thomas, Amélie, Denise or Henri. A
-different voice can be picked in the toolbar.
-
-The whole paragraph is spoken as **one utterance**, which keeps intonation natural across
-sentences. `/` becomes a comma and `//` an ellipsis, which the voice reads as pauses, unless
-punctuation already marks a pause there (`spokenText`, `src/core/speech/units.ts`). Word boundary
-events drive the highlighting. `playParagraphs` (`src/core/reading/playback.ts`) plays one or
-more paragraphs in a row, for both the training and the whole speech screens.
-
-### Whole speech
-
-`src/ui/views/DocumentView.vue` (route `/discours`) shows all paragraphs, grouped by section.
-Clicking a paragraph number makes it the starting point.
-
-- **Écouter** speaks the paragraphs one after the other, one utterance each (the same text as on
-  the training screen), with a short silence between
-  paragraphs and a longer one before a new section. The current paragraph is scrolled into view.
-- **Lire à voix haute** runs one continuous recognition session and aligns the transcript with
-  all the words from the starting paragraph on (a `ReadingTarget` spanning several paragraphs), so you can stop wherever you like. On
-  _Terminer la lecture_, every paragraph up to the last word heard gets its own score, exactly as
-  if it had been read alone, and its missed words go to the words to work on. A summary gives the
-  overall score, time and words per minute. Space starts and ends the reading.
-
-### Definitions
-
-The `Dictionary` port is implemented by `src/adapters/wiktionary/WiktionaryDictionary.ts`, which
-fetches the word's page from the French Wiktionary through the
-MediaWiki API (`action=parse`, which allows browser requests with `origin=*`) and reads, in the
-French section, the numbered definitions of each part of speech with their first example. It
-tries the word as written, without an elided article or pronoun (_l'application_ →
-_application_), and in lower case. When every definition only points to another word (_Pluriel
-de recherche_), the base word's page is fetched too; "form of" lines are dropped when the page
-has real definitions. At most 3 parts of speech and 4 meanings each are shown, with a link to the
-full page (content under CC BY-SA). Results are cached for the session.
-
-The word is sent to Wikimedia when the panel opens. Technical terms (acronyms, numbers) are not
-looked up. Without a connection, the panel says the definition is unavailable.
-
-### Reading score
-
-The `SpeechRecognizer` port (Web Speech API in the browser) gives the transcript.
-`src/core/reading/align.ts` aligns it with the words read by longest common subsequence, with a tolerant comparison:
-
-- Words are compared without accents or punctuation.
-- Elisions are matched part by part: _l'équipe_ → `l` + `equipe`.
-- Plural, feminine and verb endings are ignored (_arrivé_ = _arrivés_).
-
-A word is _understood_ when all its parts were heard. Technical terms (acronyms such as _CNRS_,
-alphanumeric terms) are shown in italics and **not counted** in the score: recognizers transcribe
-them unpredictably. Only the best score of each paragraph is kept.
-
-The training screen and the whole speech screen share the same rules
-(`src/core/reading/session.ts`): `readingTarget` covers one paragraph or several, `followReading`
-colours the words live, and `scoreReading` scores each paragraph as if read alone.
-
-### Stored data
-
-Everything goes through the `StateStorage` port: the browser's `localStorage`, under the key
-`discours:v2`:
-
-- the speech text;
-- settings: IPA and liaison display, rate, voice;
-- the current paragraph;
-- best scores, words to work on, per-word practice statistics;
-- IPA corrections.
-
-Scores are tied to the paragraph text: editing a paragraph resets its score.
-
-## Project structure
-
-```text
-scripts/
-  build-espeak-fr.mjs     French-only eSpeak-NG bundle (data trimming + module patch)
-  deploy.sh               build for a sub-path and copy into a folder of apps
-  docs-components.mjs     Vue components page of the API documentation
-src/
-  main.ts                 composition root: adapters → ports → Vue app
-  core/                   plain TypeScript: no Vue, no DOM; each module with its ports
-    model.ts              AnalyzedParagraph, WordItem…
-    ports.ts              Ports: every port the app needs
-    text/                 tokenizer and normalization, numbers in words, word keys
-    phonetics/            createAnalyzer (IPA, liaisons), syllables, lexicon; Phonemizer
-    reading/              alignment, reading sessions and scores, playback;
-                          SpeechSynthesizer, SpeechRecognizer
-    dictionary/           Dictionary
-    state/                saved state and settings; StateStorage
-    print/                pagination, file names, PDF writer and export; PageRasterizer
-    speech/               sections, display units, spoken text
-    progress/             best scores, words to work on, IPA corrections
-  adapters/               the ports, implemented for the browser
-    index.ts              createBrowserPorts()
-    espeak/               EspeakPhonemizer, web worker, engine, generated vendor module
-    webspeech/            WebSpeechSynthesizer, WebSpeechRecognizer
-    wiktionary/           WiktionaryDictionary
-    storage/              LocalStorageStateStorage
-    pdf/                  HtmlToImageRasterizer
-  ui/                     Vue
-    views/                PracticeView (/), DocumentView (/discours), EditorView (/texte),
-                          PrintView (/pdf)
-    components/           SpeechText, WordPractice, IpaEditor, WordDefinition,
-                          HardWordsPanel, PrintParagraph, PrintDocBlock;
-                          the training screen's parts: ParagraphSidebar
-                          (OverallProgress, ParagraphList), MobileHeader,
-                          PracticeSettings (ToggleSwitch), ReadingControls,
-                          ReadingSummary, HeardTranscript, PracticeLegend
-    composables/          usePorts / providePorts, useModelVoice, useVoices,
-                          useReadingSession
-    stores/discours.ts    Pinia store: reactive state over the modules and ports
-    types/                shared UI types: component props and events, word panel, PDF
-    utils/                format (durations, labels, messages in French), download
-    content/              the example speech
-    router/, assets/      routes, CSS, logo
-public/espeak/            generated French data package, git-ignored
-tests/
-  core/                   unit tests of the core (Vitest), with fake adapters
-  adapters/               adapter tests: fakes of the browser APIs, real eSpeak
-```
-
-Every module, exported function and type is documented with
-[TSDoc](https://tsdoc.org) comments. Start with `src/core/ports.ts` for the ports and
-`src/core/phonetics/analyze.ts` for the pipeline. Run `npm run docs` to browse them as HTML pages.
-
-## Development
-
-- **Stack:** Vue 3 (`<script setup>`), TypeScript, Pinia, Vue Router, Vite.
-- **Code style:** Prettier (no semicolons, single quotes, 100 columns), checked by oxlint and
-  ESLint.
-- **Architecture rules:** see [Architecture](#architecture). Keep logic in `src/core` (pure
-  functions, tested), browser APIs in `src/adapters`, and Vue in `src/ui`.
-- **Tests:** `npm test` runs the unit tests of the core with [Vitest](https://vitest.dev), in
-  Node, with fake adapters for the ports (see `tests/core/`).
-- **Generated files:** `src/adapters/espeak/vendor/espeak-ng-fr.js` and `public/espeak/` are generated and ignored
-  by git and the linters. Run `npm run espeak` if you upgrade `@echogarden/espeak-ng-emscripten`.
-  The script fails loudly if the upstream module layout changes.
-- **Running the real analyzer in Node:** `createAnalyzer` takes any `Phonemizer`. Load
-  `src/adapters/espeak/vendor/espeak-ng-fr.js` in Node, with `locateFile` pointing to
-  `public/espeak/`, and wrap its `synthesize` phoneme events in a `Phonemizer`.
-- **Adding IPA by hand:** add entries to `LEXICON` in `src/core/phonetics/lexicon.ts`, split into
-  syllables with dots. Users can also correct words in the app, but those corrections stay in
-  their browser.
-- **API documentation:** `npm run docs` generates an HTML site in `docs/api/` with
-  [TypeDoc](https://typedoc.org) (open `docs/api/index.html`). The configuration is in
-  `typedoc.json`; every exported function, type and member must be documented (TypeDoc's
-  `notDocumented` check warns otherwise). TypeDoc reads only the TypeScript modules, through
-  `tsconfig.docs.json` and a `.vue` declaration in `env.docs.d.ts`. The Vue components are covered
-  by `scripts/docs-components.mjs`, run first, which writes `docs/components.md` from each
-  component's header comment, props, events and exposed methods; TypeDoc adds it as the _Vue
-  components_ page. New TypeScript modules under `src/` are picked up automatically.
+To host it somewhere else, run `BASE_PATH=/your/path/ npm run build` and copy `dist/`.
 
 ## Limitations
 
 - **Speech recognition** only works in Chrome and Edge, and sends the audio to the browser
   vendor's servers. It judges whether a word was _understood_, not whether it was perfectly
   pronounced.
+- **Definitions** are fetched from Wikimedia when the word panel opens, so the word is sent there.
+  Without a connection, they are unavailable.
 - **The lexicon ignores context.** It gives _tous_ /tu/ even in _à tous_ (/tus/), and only covers
   the vocabulary of the speech it was written for.
 - **eSpeak-NG makes occasional mistakes** (_fils_ /fil/ instead of /fis/) and makes some optional
   liaisons (_arrivés‿z en_). Click a word to correct it.
 - **The model voice depends on the browser and the system.** Chrome's _Google français_ and
   macOS's Thomas or Amélie sound best.
+- **The PDF** is made of page images: it looks exactly like the preview, but its text can't be
+  selected or searched.
 - **Fonts** (IBM Plex, Charis SIL) load from Google Fonts. Offline, system fonts are used.
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, where code goes,
-and the checks a change must pass.
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains how the code is organized
+and how it works, and what a change needs before it is merged.
 
 ## Licence
 

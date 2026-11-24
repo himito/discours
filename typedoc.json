@@ -24,6 +24,7 @@
     "mermaid"
   ],
   "projectDocuments": [
+    "CONTRIBUTING.md",
     "docs/components.md"
   ],
   "treatWarningsAsErrors": false,
