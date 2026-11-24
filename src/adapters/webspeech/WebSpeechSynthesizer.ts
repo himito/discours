@@ -5,6 +5,9 @@
  */
 import type { SpeakOptions, SpeechSynthesizer, Voice } from '#core/reading/SpeechSynthesizer'
 
+/** Language of every utterance. */
+const LANGUAGE = 'fr-FR'
+
 /**
  * How good a voice usually sounds: fr-FR voices, Google first, then Thomas / Amélie / Denise /
  * Henri (macOS, Windows), then the rest. The same preference as the original prototype.
@@ -22,8 +25,11 @@ export class WebSpeechSynthesizer implements SpeechSynthesizer {
   /** French voices, best first. */
   private frenchVoices: SpeechSynthesisVoice[] = []
   private readonly listeners = new Set<() => void>()
-  /** Increments on each `speak`/`stop`, so events from a cancelled utterance are ignored. */
-  private token = 0
+  /**
+   * Number of the latest utterance. Each `speak` and `stop` starts a new number, so the events of
+   * an interrupted utterance can be told apart and ignored.
+   */
+  private latest = 0
 
   constructor() {
     if (!this.supported) return
@@ -44,18 +50,15 @@ export class WebSpeechSynthesizer implements SpeechSynthesizer {
   speak(text: string, options: SpeakOptions): Promise<boolean> {
     if (!this.supported) return Promise.resolve(false)
     this.stop()
-    const mine = ++this.token
+    const number = ++this.latest
+    const isLatest = () => number === this.latest
+    const utterance = this.createUtterance(text, options)
     return new Promise((resolve) => {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'fr-FR'
-      utterance.rate = options.rate
-      const voice =
-        this.frenchVoices.find((v) => v.voiceURI === options.voiceId) ?? this.frenchVoices[0]
-      if (voice) utterance.voice = voice
-      utterance.onboundary = (e) => {
-        if (mine === this.token && e.name === 'word') options.onWord?.(e.charIndex)
+      utterance.onboundary = (event) => {
+        if (isLatest() && event.name === 'word') options.onWord?.(event.charIndex)
       }
-      utterance.onend = () => resolve(mine === this.token)
+      // An interrupted utterance also ends: it was not spoken to the end.
+      utterance.onend = () => resolve(isLatest())
       utterance.onerror = () => resolve(false)
       speechSynthesis.speak(utterance)
     })
@@ -63,8 +66,35 @@ export class WebSpeechSynthesizer implements SpeechSynthesizer {
 
   stop(): void {
     if (!this.supported) return
-    this.token++
+    this.latest++
     speechSynthesis.cancel()
+  }
+
+  /**
+   * An utterance of `text` in French, at the given rate and voice.
+   *
+   * @param text - What to say.
+   * @param options - The rate, and the voice to use.
+   * @returns The utterance, ready to be spoken.
+   */
+  private createUtterance(text: string, { rate, voiceId }: SpeakOptions): SpeechSynthesisUtterance {
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = LANGUAGE
+    utterance.rate = rate
+    const voice = this.voiceFor(voiceId)
+    if (voice) utterance.voice = voice
+    return utterance
+  }
+
+  /**
+   * The voice to speak with.
+   *
+   * @param id - The chosen voice's {@link Voice.id}, or `''` for the best one.
+   * @returns The chosen voice if available, else the best French voice; `undefined` if the browser
+   *   has none (it then uses its default voice).
+   */
+  private voiceFor(id: string): SpeechSynthesisVoice | undefined {
+    return this.frenchVoices.find((voice) => voice.voiceURI === id) ?? this.frenchVoices[0]
   }
 
   private refreshVoices(): void {
