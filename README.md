@@ -10,6 +10,11 @@ then work on the difficult ones one by one.
 It runs entirely in the browser: no server, no account. Your text and progress stay in your
 browser.
 
+<p align="center">
+  <img src="docs/images/training-screen.png" width="900"
+    alt="The training screen, annotated: (1) overall progress; (2) paragraphs by section, with your best score; (3) links to the whole speech, the text editor and the PDF download; (4) showing the IPA and liaisons; (5) the model voice's speed and voice; (6) the IPA under each word, which can be clicked to practise it; (7) a liaison to make; (8) listening to the model voice; (9) reading aloud, with words turning green or red, then a score; (10) the words you missed, to practise one by one.">
+</p>
+
 ## Contents
 
 - [Features](#features)
