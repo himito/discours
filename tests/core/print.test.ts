@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { PageRasterizer } from '#core/print/PageRasterizer'
 import { exportPdf } from '#core/print/exportPdf'
 import { pdfFileName, slug } from '#core/print/fileName'
+import { A4_CSS_PIXELS, A4_MM, A4_POINTS } from '#core/print/paper'
 import { fillPages, pairs } from '#core/print/pagination'
 import { jpegSize, jpegsToPdf } from '#core/print/pdfWriter'
 
@@ -94,5 +95,18 @@ describe('PDF', () => {
     const pdf = await exportPdf(['a', 'b', 'c'], rasterizer, (done) => progress.push(done))
     expect(progress).toEqual([1, 2, 3])
     expect(new TextDecoder('latin1').decode(pdf)).toContain('/Count 3')
+  })
+})
+
+describe('paper', () => {
+  it('derives A4 in points and pixels from millimetres', () => {
+    expect(A4_MM).toEqual({ width: 210, height: 297 })
+    expect(A4_POINTS).toEqual({ width: 595.28, height: 841.89 })
+    expect(A4_CSS_PIXELS).toEqual({ width: 794, height: 1123 })
+  })
+
+  it('makes PDF pages A4', () => {
+    const pdf = new TextDecoder('latin1').decode(jpegsToPdf([fakeJpeg(10, 10)]))
+    expect(pdf).toContain('/MediaBox [0 0 595.28 841.89]')
   })
 })

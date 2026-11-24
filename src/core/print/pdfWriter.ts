@@ -6,17 +6,7 @@
  *
  * @packageDocumentation
  */
-
-/** A4 in PDF points (72 per inch). */
-const PAGE_PT = { width: 595.28, height: 841.89 }
-
-/** Size of an image, in pixels. */
-export interface ImageSize {
-  /** Width, in pixels. */
-  width: number
-  /** Height, in pixels. */
-  height: number
-}
+import { A4_POINTS, type Size } from './paper'
 
 /** Marker at the start of every JPEG file (SOI). */
 const START_OF_IMAGE = 0xffd8
@@ -41,7 +31,7 @@ interface Segment {
  *
  * @throws If the bytes are not a JPEG file, or are damaged or truncated before the frame header.
  */
-export function jpegSize(bytes: Uint8Array): ImageSize {
+export function jpegSize(bytes: Uint8Array): Size {
   const data = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   for (const segment of segments(data))
     if (isFrameHeader(segment.marker)) return frameSize(data, segment.offset)
@@ -71,7 +61,7 @@ function isFrameHeader(marker: number): boolean {
 }
 
 /** Reads the size from the frame header segment at `offset`. */
-function frameSize(data: DataView, offset: number): ImageSize {
+function frameSize(data: DataView, offset: number): Size {
   if (offset + FRAME_HEADER.size > data.byteLength) throw unreadable('truncated frame header')
   return {
     width: data.getUint16(offset + FRAME_HEADER.width),
@@ -111,7 +101,7 @@ export function jpegsToPdf(pages: readonly Uint8Array[]): Uint8Array {
     2,
     `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pages.length} >>`,
   )
-  const { width: W, height: H } = PAGE_PT
+  const { width: W, height: H } = A4_POINTS
   pages.forEach((jpeg, i) => {
     const [page, content, image] = [pageIds[i]!, pageIds[i]! + 1, pageIds[i]! + 2]
     const { width, height } = jpegSize(jpeg)

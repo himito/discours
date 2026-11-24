@@ -20,6 +20,7 @@ import type { AnalyzedParagraph } from '#core/model'
 import { exportPdf } from '#core/print/exportPdf'
 import { pdfFileName } from '#core/print/fileName'
 import { fillPages, pairs, type PageBox } from '#core/print/pagination'
+import { A4_CSS_PIXELS } from '#core/print/paper'
 import { hardWordsIn } from '#core/progress/progress'
 import { groupBySection, readingSeconds, TARGET_WPM, type Section } from '#core/speech/sections'
 import PrintDocBlock, { type DocBlock } from '#ui/components/PrintDocBlock.vue'
@@ -37,8 +38,6 @@ onMounted(() => void store.analyze())
 
 /** Words to work on listed on a section's last card, at most. */
 const HARD_ON_CARD = 8
-/** Width of an A4 sheet in CSS pixels (210 mm). */
-const SHEET_PX = 794
 
 // ---------------------------------------------------------------- options
 
@@ -190,7 +189,8 @@ let observer: ResizeObserver | undefined
 
 onMounted(() => {
   observer = new ResizeObserver(([entry]) => {
-    zoom.value = Math.min(1, (entry?.contentRect.width ?? SHEET_PX) / SHEET_PX)
+    const sheetWidth = A4_CSS_PIXELS.width
+    zoom.value = Math.min(1, (entry?.contentRect.width ?? sheetWidth) / sheetWidth)
   })
   if (preview.value) observer.observe(preview.value)
 })

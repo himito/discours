@@ -8,9 +8,8 @@
  */
 import { getFontEmbedCSS, toJpeg } from 'html-to-image'
 import type { PageRasterizer } from '#core/print/PageRasterizer'
+import { A4_CSS_PIXELS } from '#core/print/paper'
 
-/** A4 in CSS pixels (96 per inch): 210 × 297 mm. */
-const PAGE_PX = { width: 794, height: 1123 }
 /** Capture resolution: 2.5 × 96 = 240 dpi, sharp in print and about 300 KB per page. */
 const PIXEL_RATIO = 2.5
 
@@ -23,7 +22,7 @@ export class HtmlToImageRasterizer implements PageRasterizer<HTMLElement> {
     this.fonts ??= embeddableFonts(page)
     const fontEmbedCSS = await this.fonts
     const url = await toJpeg(page, {
-      ...PAGE_PX,
+      ...A4_CSS_PIXELS,
       pixelRatio: PIXEL_RATIO,
       quality: 0.9,
       backgroundColor: '#ffffff',
