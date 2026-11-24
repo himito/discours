@@ -20,6 +20,7 @@
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
+    "pretest": "npm run espeak",
     "test": "vitest run",
     "test:watch": "vitest",
     "prebuild-only": "npm run espeak",
